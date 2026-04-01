@@ -1,0 +1,18 @@
+{
+  "_note": "Generated from notebook v3.2. Update DEPTH_UNITS_PER_CM after Pi calibration.",
+  "notebook_version": "v3.2",
+  "PLATE_DIAMETER_CM": 25.0,
+  "PLATE_RADIUS_CM": 12.5,
+  "PLATE_AREA_CM2": 490.8739,
+  "EXPECTED_MAX_FOOD_HEIGHT_CM": 5.0,
+  "USE_CALIBRATED_DEPTH": false,
+  "DEPTH_UNITS_PER_CM": null,
+  "CALIBRATED_PLATE_DIAMETER_CM": null,
+  "STARCH_REFERENCE_VOLUME_CM3": 220.0,
+  "DEFAULT_DENSITY": 0.6,
+  "PORTION_THRESHOLDS": {
+    "starch": 0.5,
+    "protein": 0.25,
+    "vegetable": 0.25
+  }
+}

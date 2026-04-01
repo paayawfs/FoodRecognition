@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FoodAI</title>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Tokens ── */
+:root {
+  --primary:       #3CC13B;
+  --primary-dark:  #2DA82C;
+  --primary-light: #E8F9E8;
+  --macro-protein: #3CC13B;
+  --macro-carb:    #F5A623;
+  --macro-fat:     #E74C3C;
+  --plan-bg:       #FFD6D6;
+  --plan-text:     #B05050;
+  --success:       #16A34A;
+  --warning:       #F5A623;
+  --danger:        #E74C3C;
+  --info:          #0284C7;
+  --bg:            #F5F7FA;
+  --text:          #1A2233;
+  --muted:         #8A95A3;
+  --card-bg:       #FFFFFF;
+  --border:        #EAEEF3;
+  --shadow:        0 4px 20px rgba(0,0,0,0.08);
+  --shadow-sm:     0 2px 8px rgba(0,0,0,0.06);
+  --radius:        20px;
+  --radius-sm:     12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100dvh;
+}
+
+/* ── Screen ── */
+.screen { padding-bottom: 120px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+.card h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 56px;
+  text-align: center;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.82; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary);
+  background: transparent;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 52px;
+  text-align: center;
+}
+.btn-secondary:active { background: var(--primary-light); }
+
+.btn-danger {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--danger);
+  background: transparent;
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 52px;
+}
+
+.btn-export {
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary);
+  background: #fff;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.btn-export:active { background: var(--primary-light); }
+
+/* ── Legacy header (kept for safety) ── */
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dash-header h1 { font-size: 26px; font-weight: 800; }
+.dash-header h2 { font-size: 22px; font-weight: 700; }
+
+.back-link {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 8px 8px 8px 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.icon-btn:active { background: var(--border); }
+
+/* ── Skeleton loading ── */
+.skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius);
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Loading overlay ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: #fff;
+}
+.loading-overlay .spinner {
+  width: 52px; height: 52px;
+  border: 5px solid rgba(255,255,255,0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 20px; font-weight: 600; text-align: center; padding: 0 32px; }
+
+/* ── Login ── */
+.login-header {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+.app-logo {
+  width: 80px; height: 80px;
+  background: var(--primary);
+  border-radius: var(--radius);
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.login-header h1  { font-size: 32px; font-weight: 900; }
+.login-header p   { color: var(--muted); margin-top: 4px; font-size: 17px; }
+
+.user-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  min-height: 76px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+.user-card:active { border-color: var(--primary); }
+
+.user-avatar {
+  width: 48px; height: 48px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; }
+.user-name { font-size: 20px; font-weight: 700; }
+.user-sub  { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.user-arrow { font-size: 24px; color: var(--muted); }
+
+/* ── Forms ── */
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-input {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 18px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--primary); }
+.form-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── New Dashboard header ── */
+.dash-header-new {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-top: 8px;
+}
+.dash-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dash-greeting { flex: 1; margin-left: 12px; }
+.dash-greeting-name { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.2; }
+.dash-greeting-date { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.dash-gear-btn {
+  background: var(--card-bg);
+  border: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.dash-gear-btn:active { background: var(--border); }
+
+/* ── Plan card ── */
+.plan-card {
+  background: var(--plan-bg);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.plan-card:active { opacity: 0.88; }
+.plan-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--plan-text);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.plan-card-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.plan-card-sub   { font-size: 13px; color: var(--plan-text); margin-top: 2px; }
+.plan-card-arrow { font-size: 22px; color: var(--plan-text); flex-shrink: 0; margin-left: 12px; }
+
+/* ── Plate status card ── */
+.plate-status-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.plate-status-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.plate-status-icon {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.plate-status-icon.good    { background: #DCFCE7; }
+.plate-status-icon.caution { background: #FFF7ED; }
+.plate-status-icon.warning { background: #FEF2F2; }
+.plate-status-icon.none    { background: var(--border); }
+.plate-status-title { font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.3; }
+.plate-status-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.comp-target-label  { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px; }
+
+/* ── Macro bars ── */
+.macro-bars { margin-top: 20px; }
+.macro-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.macro-row:last-child { margin-bottom: 0; }
+.macro-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.macro-name { font-size: 13px; font-weight: 600; color: var(--muted); width: 60px; flex-shrink: 0; }
+.macro-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.macro-fill  { height: 100%; border-radius: 3px; transition: width 0.7s ease; }
+.macro-val   { font-size: 12px; font-weight: 700; color: var(--text); width: 64px; text-align: right; white-space: nowrap; flex-shrink: 0; }
+
+/* ── Meals section header + tabs ── */
+.meals-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.meals-section-title { font-size: 17px; font-weight: 800; color: var(--text); }
+.meals-see-all {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.meal-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.meal-tabs::-webkit-scrollbar { display: none; }
+.meal-tab {
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  background: var(--border);
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+.meal-tab.active { background: var(--primary); color: #fff; }
+
+/* ── Meal cards ── */
+.meal-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: opacity 0.12s;
+}
+.meal-card:active { opacity: 0.75; }
+.meal-thumb {
+  width: 64px; height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--border);
+}
+.meal-thumb-placeholder {
+  width: 64px; height: 64px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.meal-info { flex: 1; min-width: 0; }
+.meal-time  { font-size: 12px; color: var(--muted); }
+.meal-foods {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.meal-items-list {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meal-carbs-badge {
+  background: var(--primary-light);
+  border: none;
+  border-radius: 10px;
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── 5-item bottom nav ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  z-index: 100;
+}
+.nav-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px 6px;
+  min-width: 56px;
+  min-height: 52px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item svg { width: 22px; height: 22px; }
+.nav-scan-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.nav-scan-btn {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 4px solid #fff;
+  box-shadow: 0 4px 16px rgba(60,193,59,0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -28px;
+  transition: transform 0.12s;
+}
+.nav-scan-btn:active { transform: scale(0.9); }
+.nav-scan-btn svg { width: 26px; height: 26px; }
+.nav-scan-label { font-size: 11px; font-weight: 600; color: var(--primary); margin-top: 4px; }
+
+/* ── Camera view ── */
+.camera-view {
+  background: #000;
+  min-height: 100dvh;
+  position: relative;
+  margin: -16px;
+  overflow: hidden;
+}
+.camera-view img { display: block; width: 100%; }
+.back-btn {
+  position: absolute;
+  top: 16px; left: 16px;
+  width: 44px; height: 44px;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.capture-btn {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: #fff;
+  border: 5px solid rgba(255,255,255,0.55);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 20;
+  transition: transform 0.12s;
+}
+.capture-btn:active { transform: translateX(-50%) scale(0.88); }
+
+.upload-btn {
+  position: fixed;
+  bottom: 52px;
+  left: calc(50% - 108px);
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid rgba(255,255,255,0.4);
+  cursor: pointer;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s;
+}
+.upload-btn:active { transform: scale(0.88); }
+.upload-btn svg { width: 22px; height: 22px; }
+
+/* ── Results ── */
+.image-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.image-compare img {
+  width: 100%;
+  border-radius: var(--radius);
+  display: block;
+  background: var(--border);
+}
+.img-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+@media (max-width: 440px) {
+  .image-compare { grid-template-columns: 1fr; }
+}
+
+/* ── Portion badges ── */
+.badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.badge-small       { background: var(--info); }
+.badge-appropriate { background: var(--success); }
+.badge-reduce      { background: var(--warning); }
+.badge-excessive   { background: var(--danger); }
+
+/* ── Food result card ── */
+.food-result-card { margin-bottom: 10px; }
+.food-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.food-result-name { font-size: 20px; font-weight: 700; }
+.gi-line          { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.food-result-macros { font-size: 14px; color: var(--muted); }
+.food-rec {
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--primary);
+}
+
+/* ── Summary card ── */
+.summary-card h2 { margin-bottom: 16px; }
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 17px;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-row strong { font-size: 20px; font-weight: 700; }
+.summary-row.over-budget strong { color: var(--danger); }
+
+/* ── Alert banner ── */
+.alert-banner {
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.alert-good    { background: #DCFCE7; color: #166534; border-left: 4px solid var(--success); }
+.alert-caution { background: #FFF7ED; color: #9A3412; border-left: 4px solid var(--warning); }
+.alert-warning { background: #FEF2F2; color: #991B1B; border-left: 4px solid var(--danger); }
+
+/* ── History / Export ── */
+.export-btns { display: flex; gap: 10px; margin-bottom: 16px; }
+
+/* ── Error ── */
+.error-msg { text-align: center; color: var(--danger); padding: 24px; font-size: 16px; }
+
+/* ── Plate ratio bar ── */
+.ratio-bar { margin-top: 12px; }
+.ratio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.ratio-label { width: 74px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+.ratio-track {
+  flex: 1;
+  height: 14px;
+  background: var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ratio-fill { height: 100%; border-radius: 8px; }
+.ratio-pct  { width: 36px; text-align: right; font-weight: 700; font-size: 13px; }
+
+/* ── Alert dot on meal cards ── */
+.alert-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; display:inline-block; }
+.alert-dot.good    { background:var(--success); }
+.alert-dot.caution { background:var(--warning); }
+.alert-dot.warning { background:var(--danger);  }
+.alert-dot.none    { background:var(--border);  }
+
+/* ── Meal type overlay strip on camera ── */
+.mtype-strip {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 30;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.45);
+  border-radius: 30px;
+}
+.mtype-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  transition: background 0.15s;
+}
+.mtype-btn.active { background: var(--primary); }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div id="loading-overlay" class="loading-overlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Analysing your meal...</div>
+</div>
+
+<script>
+'use strict';
+
+// ── SVG icons ──
+const ICONS = {
+  home:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  history: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  scan:    `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  export:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+  profile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+};
+
+function todayLabel() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+// ── Meal metadata helpers (localStorage sidecar) ──
+function getMealMeta() {
+  try { return JSON.parse(localStorage.getItem('foodai_meal_meta') || '{}'); } catch(_) { return {}; }
+}
+function setMealMeta(meta) {
+  localStorage.setItem('foodai_meal_meta', JSON.stringify(meta));
+}
+function saveMealMeta(mealId, type, alertLevel, carbsG) {
+  const meta = getMealMeta();
+  meta[mealId] = { meal_type: type || null, alert_level: alertLevel || null, carbs_g: carbsG || 0 };
+  setMealMeta(meta);
+}
+function inferMealType(iso) {
+  if (!iso) return 'Snack';
+  const h = new Date(iso).getHours();
+  if (h >= 5  && h < 11) return 'Breakfast';
+  if (h >= 11 && h < 15) return 'Lunch';
+  if (h >= 15 && h < 22) return 'Dinner';
+  return 'Snack';
+}
+function fmtTimeShort(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentView = null;
+let streamImg   = null;
+let dashCache   = null;
+let captureBtn_     = null;
+let currentMealType = null;
+
+// ─────────────────────────────────────────────────────────────────
+//  Utility
+// ─────────────────────────────────────────────────────────────────
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = String(str || '');
+  return d.innerHTML;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  const t   = new Date(iso);
+  const now = new Date();
+  const isToday = t.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYest = t.toDateString() === yesterday.toDateString();
+  const time = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return 'Today, ' + time;
+  if (isYest)  return 'Yesterday, ' + time;
+  return t.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ', ' + time;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!res.ok) {
+    let msg = 'API error';
+    try { msg = (await res.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+function showLoading(text = 'Analysing your meal...') {
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Camera stream
+// ─────────────────────────────────────────────────────────────────
+function startCameraStream(container) {
+  streamImg = document.createElement('img');
+  streamImg.src   = '/video_feed';
+  streamImg.alt   = 'Camera feed';
+  streamImg.style.cssText = 'display:block;width:100%;max-height:75dvh;object-fit:cover;';
+  container.appendChild(streamImg);
+}
+
+function stopCameraStream() {
+  if (streamImg) {
+    streamImg.src = '';
+    streamImg = null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Router
+// ─────────────────────────────────────────────────────────────────
+const VIEWS = { login, dashboard, camera, results, history: mealHistory, profile };
+
+function navigate(view, params) {
+  params = params || {};
+  if (currentView === 'camera' && view !== 'camera') stopCameraStream();
+  currentView = view;
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  app.style.padding = (view === 'camera') ? '0' : '16px';
+  if (VIEWS[view]) VIEWS[view](app, params);
+  history.pushState({ view, params }, '', '#' + view);
+}
+
+window.addEventListener('popstate', function(e) {
+  if (e.state) navigate(e.state.view, e.state.params || {});
+});
+
+window.addEventListener('load', function() {
+  const saved = localStorage.getItem('foodai_uid');
+  if (saved) {
+    api('/api/users')
+      .then(function(users) {
+        currentUser = users.find(function(u) { return u.id == saved; });
+        navigate(currentUser ? 'dashboard' : 'login');
+        if (!currentUser) localStorage.removeItem('foodai_uid');
+      })
+      .catch(function() { navigate('login'); });
+  } else {
+    navigate('login');
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  View: Login
+// ─────────────────────────────────────────────────────────────────
+function login(container) {
+  container.innerHTML = `
+    <div class="screen" style="padding-bottom:40px">
+      <div class="login-header">
+        <div class="app-logo">FA</div>
+        <h1>FoodAI</h1>
+        <p>Diabetic Dietary Guidance</p>
+      </div>
+
+      <div id="users-area">
+        <div class="skeleton" style="height:76px;margin-bottom:10px"></div>
+        <div class="skeleton" style="height:76px"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <button class="btn-secondary" onclick="toggleNewUserForm()">+ Add New User</button>
+        <div id="new-user-form" style="display:none;margin-top:16px">
+          <label class="form-label">Name</label>
+          <input class="form-input" type="text" id="nu-name"
+                 placeholder="e.g. Ama Asante" maxlength="60">
+          <button class="btn-primary" style="margin-top:16px" onclick="createUser()">
+            Create Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  loadUsers();
+}
+
+function loadUsers() {
+  api('/api/users').then(function(users) {
+    const area = document.getElementById('users-area');
+    if (!area) return;
+    if (users.length === 0) {
+      area.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;font-size:17px">No profiles yet. Create one below.</p>';
+      return;
+    }
+    area.innerHTML = users.map(function(u) {
+      return `
+        <div class="user-card" onclick="selectUser(${u.id},'${esc(u.name)}',${u.daily_carb_target_g})">
+          <div class="user-avatar">${esc(u.name.charAt(0).toUpperCase())}</div>
+          <div class="user-info">
+            <div class="user-name">${esc(u.name)}</div>
+            <div class="user-sub">Diabetic Plate Model</div>
+          </div>
+          <div class="user-arrow">&#8250;</div>
+        </div>
+      `;
+    }).join('');
+  }).catch(function() {
+    const area = document.getElementById('users-area');
+    if (area) area.innerHTML = '<p class="error-msg">Could not load profiles.</p>';
+  });
+}
+
+function toggleNewUserForm() {
+  const f = document.getElementById('new-user-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function createUser() {
+  const name = (document.getElementById('nu-name').value || '').trim();
+  if (!name) { alert('Please enter a name.'); return; }
+  api('/api/users', {
+    method: 'POST',
+    body: JSON.stringify({ name: name, daily_carb_target_g: 135 }),
+  }).then(function(u) {
+    selectUser(u.id, u.name, u.daily_carb_target_g);
+  }).catch(function(e) { alert('Failed to create profile: ' + e.message); });
+}
+
+function selectUser(id, name, target) {
+  currentUser = { id: id, name: name, daily_carb_target_g: target };
+  localStorage.setItem('foodai_uid', id);
+  dashCache = null;
+  navigate('dashboard');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  View: Dashboard
+// ─────────────────────────────────────────────────────────────────
+function dashboard(container) {
+  const initials = (currentUser.name || 'U').charAt(0).toUpperCase();
+  container.innerHTML = `
+    <div class="screen">
+
+      <div class="dash-header-new">
+        <div class="dash-avatar">${esc(initials)}</div>
+        <div class="dash-greeting">
+          <div class="dash-greeting-name">Hello, ${esc(currentUser.name)}!</div>
+          <div class="dash-greeting-date">${todayLabel()}</div>
+        </div>
+        <button class="dash-gear-btn" onclick="navigate('profile')" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="plan-card" onclick="navigate('profile')">
+        <div>
+          <div class="plan-card-label">Your Plan</div>
+          <div class="plan-card-title">Diabetic Plate Model</div>
+          <div class="plan-card-sub">50% vegetables &middot; 25% protein &middot; 25% starch</div>
+        </div>
+        <div class="plan-card-arrow">&#8250;</div>
+      </div>
+
+      <div class="plate-status-card">
+        <div class="plate-status-row">
+          <div class="plate-status-icon none" id="plate-status-icon">&#127859;</div>
+          <div>
+            <div class="plate-status-title" id="plate-status-title">Scan a meal to start</div>
+            <div class="plate-status-sub"   id="plate-status-sub">Most recent meal assessment</div>
+          </div>
+        </div>
+
+        <div class="macro-bars">
+          <div class="macro-row">
+            <div class="macro-dot" style="background:var(--success)"></div>
+            <span class="macro-name">Veg</span>
+            <div class="macro-track">
+              <div class="macro-fill" id="comp-veg-fill" style="width:0%;background:var(--success)"></div>
+            </div>
+            <span class="macro-val" id="comp-veg-val">--%</span>
+          </div>
+          <div class="macro-row">
+            <div class="macro-dot" style="background:var(--info)"></div>
+            <span class="macro-name">Protein</span>
+            <div class="macro-track">
+              <div class="macro-fill" id="comp-protein-fill" style="width:0%;background:var(--info)"></div>
+            </div>
+            <span class="macro-val" id="comp-protein-val">--%</span>
+          </div>
+          <div class="macro-row">
+            <div class="macro-dot" style="background:var(--macro-carb)"></div>
+            <span class="macro-name">Starch</span>
+            <div class="macro-track">
+              <div class="macro-fill" id="comp-starch-fill" style="width:0%;background:var(--macro-carb)"></div>
+            </div>
+            <span class="macro-val" id="comp-starch-val">--%</span>
+          </div>
+        </div>
+        <p class="comp-target-label">Target: 50% veg &nbsp;&middot;&nbsp; 25% protein &nbsp;&middot;&nbsp; 25% starch</p>
+      </div>
+
+      <div class="meals-section-header">
+        <span class="meals-section-title">Recent Meals</span>
+        <button class="meals-see-all" onclick="navigate('history')">See All</button>
+      </div>
+
+      <div class="meal-tabs">
+        <button class="meal-tab active" onclick="filterMeals('all',this)">All</button>
+        <button class="meal-tab" onclick="filterMeals('breakfast',this)">Breakfast</button>
+        <button class="meal-tab" onclick="filterMeals('lunch',this)">Lunch</button>
+        <button class="meal-tab" onclick="filterMeals('dinner',this)">Dinner</button>
+      </div>
+
+      <div id="recent-meals">
+        <div class="skeleton" style="height:92px;margin-bottom:10px"></div>
+        <div class="skeleton" style="height:92px;margin-bottom:10px"></div>
+        <div class="skeleton" style="height:92px"></div>
+      </div>
+
+      <div class="bottom-nav">
+        <button class="nav-item active" onclick="navigate('dashboard')">${ICONS.home}Home</button>
+        <button class="nav-item" onclick="navigate('history')">${ICONS.history}History</button>
+        <div class="nav-scan-wrap">
+          <button class="nav-scan-btn" onclick="navigate('camera')" title="Scan Meal">${ICONS.scan}</button>
+          <span class="nav-scan-label">Scan</span>
+        </div>
+        <button class="nav-item" onclick="doExport('csv')">${ICONS.export}Export</button>
+        <button class="nav-item" onclick="navigate('profile')">${ICONS.profile}Profile</button>
+      </div>
+    </div>
+  `;
+
+  if (dashCache) { fillDashboard(dashCache); return; }
+
+  api('/api/dashboard/' + currentUser.id).then(function(data) {
+    dashCache = data;
+    fillDashboard(data);
+  }).catch(function() {
+    const el = document.getElementById('recent-meals');
+    if (el) el.innerHTML = '<p class="error-msg">Could not load data.</p>';
+  });
+}
+
+function fillDashboard(data) {
+  const el = document.getElementById('recent-meals');
+  if (!el) return;
+
+  if (!data.recent_meals || data.recent_meals.length === 0) {
+    el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:28px;font-size:17px">No meals yet. Tap Scan to start!</p>';
+    return;
+  }
+
+  el.dataset.meals = JSON.stringify(data.recent_meals);
+  el.innerHTML = data.recent_meals.map(mealCard).join('');
+
+  // Fetch the most recent meal's plate assessment for the status card
+  api('/api/meals/detail/' + data.recent_meals[0].id).then(function(mealData) {
+    var m = mealData.meal || mealData;
+    fillPlateStatus(m.plate_assessment || {}, m.total_carbs_g);
+  }).catch(function() { /* leave as dashes */ });
+}
+
+function fillPlateStatus(pa, totalCarbsG) {
+  const ratios     = pa.ratios     || {};
+  const alertLevel = pa.alert_level || 'none';
+
+  const statusMap = {
+    good:    { icon: '&#10003;', cls: 'good',    title: 'Balanced',        sub: 'Great plate composition' },
+    caution: { icon: '&#9888;',  cls: 'caution', title: 'Adjust portions', sub: 'One category needs attention' },
+    warning: { icon: '&#9888;',  cls: 'warning', title: 'Review meal',     sub: 'Plate composition needs work' },
+  };
+  const s = statusMap[alertLevel] || { icon: '&#127859;', cls: 'none', title: 'Scan a meal to start', sub: 'Most recent meal assessment' };
+
+  const iconEl  = document.getElementById('plate-status-icon');
+  const titleEl = document.getElementById('plate-status-title');
+  const subEl   = document.getElementById('plate-status-sub');
+  if (iconEl)  { iconEl.className = 'plate-status-icon ' + s.cls; iconEl.innerHTML = s.icon; }
+  if (titleEl) titleEl.textContent = s.title;
+  if (subEl) {
+    const carbLine = (totalCarbsG != null) ? ' · ~' + Math.round(totalCarbsG) + 'g carbs' : '';
+    subEl.textContent = s.sub + carbLine;
+  }
+
+  function setBar(id, ratio) {
+    const pct  = Math.round((ratio || 0) * 100);
+    const fill = document.getElementById(id + '-fill');
+    const val  = document.getElementById(id + '-val');
+    if (fill) fill.style.width = Math.min(pct, 100) + '%';
+    if (val)  val.textContent  = pct + '%';
+  }
+  setBar('comp-veg',    ratios.vegetable);
+  setBar('comp-protein', ratios.protein);
+  setBar('comp-starch',  ratios.starch);
+}
+
+function mealCard(m) {
+  const meta       = getMealMeta()[m.id] || {};
+  const mealType   = meta.meal_type   || inferMealType(m.captured_at);
+  const alertLevel = meta.alert_level || 'none';
+  const foods      = m.foods || 'Unknown';
+  const thumbUrl   = m.annotated_url || null;
+  const thumb = thumbUrl
+    ? '<img class="meal-thumb" src="' + thumbUrl + '" alt="meal">'
+    : '<div class="meal-thumb-placeholder">' + esc((foods.charAt(0) || 'F').toUpperCase()) + '</div>';
+  return `
+    <div class="meal-card card" onclick="navigate('results',{mealId:${m.id}})">
+      ${thumb}
+      <div class="meal-info">
+        <div class="meal-time" style="display:flex;align-items:center;gap:6px">
+          <span class="alert-dot ${alertLevel}"></span>
+          <span>${esc(mealType)} &middot; ${esc(fmtTimeShort(m.captured_at))}</span>
+        </div>
+        <div class="meal-foods">${esc(foods)}</div>
+      </div>
+      <div class="meal-carbs-badge">~${Math.round(m.total_carbs_g || 0)}g</div>
+    </div>
+  `;
+}
+
+function filterMeals(type, tabEl) {
+  document.querySelectorAll('.meal-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (tabEl) tabEl.classList.add('active');
+  const el = document.getElementById('recent-meals');
+  if (!el || !el.dataset.meals) return;
+  let meals = JSON.parse(el.dataset.meals);
+  if (type !== 'all') {
+    meals = meals.filter(function(m) {
+      const h = new Date(m.captured_at).getHours();
+      if (type === 'breakfast') return h >= 5  && h < 11;
+      if (type === 'lunch')     return h >= 11 && h < 15;
+      if (type === 'dinner')    return h >= 15 && h < 22;
+      return false;
+    });
+  }
+  el.innerHTML = meals.length
+    ? meals.map(mealCard).join('')
+    : '<p style="color:var(--muted);text-align:center;padding:20px;font-size:15px">No ' + type + ' meals found.</p>';
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  View: Camera
+// ─────────────────────────────────────────────────────────────────
+function camera(container) {
+  currentMealType = inferMealType(new Date().toISOString());
+  const bt = function(type) {
+    return `<button class="mtype-btn${currentMealType===type?' active':''}" onclick="setMealType('${type}',this)">${type}</button>`;
+  };
+  container.innerHTML = `
+    <div class="camera-view">
+      <button class="back-btn" onclick="navigate('dashboard')">&#8592;</button>
+      <div id="cam-container"></div>
+      <div class="mtype-strip">${bt('Breakfast')}${bt('Lunch')}${bt('Dinner')}${bt('Snack')}</div>
+      <button class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()" title="Upload Image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="doUpload(this)">
+      <button class="capture-btn" id="cap-btn" onclick="doCapture()"></button>
+    </div>
+  `;
+  captureBtn_ = document.getElementById('cap-btn');
+  startCameraStream(document.getElementById('cam-container'));
+}
+
+function setMealType(type, el) {
+  currentMealType = type;
+  document.querySelectorAll('.mtype-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (el) el.classList.add('active');
+}
+
+async function doCapture() {
+  if (!captureBtn_ || captureBtn_.disabled) return;
+  captureBtn_.disabled = true;
+  captureBtn_.style.opacity = '0.45';
+
+  try {
+    const capData = await api('/api/capture', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: currentUser.id }),
+    });
+
+    stopCameraStream();
+    const cc = document.getElementById('cam-container');
+    if (cc) {
+      cc.innerHTML = '<img src="' + capData.url + '" style="display:block;width:100%">';
+    }
+
+    showLoading('Analysing your meal\u2026');
+    const inferData = await api('/api/infer', {
+      method: 'POST',
+      body: JSON.stringify({ filename: capData.filename, user_id: currentUser.id }),
+    });
+    hideLoading();
+
+    if (inferData.meal_id) {
+      saveMealMeta(inferData.meal_id, currentMealType,
+        inferData.plate_assessment ? inferData.plate_assessment.alert_level : null,
+        inferData.totals ? inferData.totals.carbs_g : 0);
+    }
+    dashCache = null;
+    navigate('results', { mealId: inferData.meal_id });
+
+  } catch (e) {
+    hideLoading();
+    alert('Error: ' + e.message);
+    if (captureBtn_) {
+      captureBtn_.disabled = false;
+      captureBtn_.style.opacity = '1';
+    }
+  }
+}
+
+async function doUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  input.value = '';  // reset so same file can be re-selected
+
+  showLoading('Uploading image\u2026');
+
+  try {
+    // 1. Upload the file
+    const form = new FormData();
+    form.append('image', file);
+    const upRes = await fetch('/api/upload', { method: 'POST', body: form });
+    if (!upRes.ok) {
+      let msg = 'Upload failed';
+      try { msg = (await upRes.json()).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const upData = await upRes.json();
+
+    // Show uploaded image in camera container
+    stopCameraStream();
+    const cc = document.getElementById('cam-container');
+    if (cc) {
+      cc.innerHTML = '<img src="' + upData.url + '" style="display:block;width:100%">';
+    }
+
+    // 2. Run inference on the uploaded image
+    showLoading('Analysing your meal\u2026');
+    const inferData = await api('/api/infer', {
+      method: 'POST',
+      body: JSON.stringify({ filename: upData.filename, user_id: currentUser.id }),
+    });
+    hideLoading();
+
+    // Save meal metadata & navigate to results
+    if (inferData.meal_id) {
+      saveMealMeta(inferData.meal_id, currentMealType,
+        inferData.plate_assessment ? inferData.plate_assessment.alert_level : null,
+        inferData.totals ? inferData.totals.carbs_g : 0);
+    }
+    dashCache = null;
+    navigate('results', { mealId: inferData.meal_id });
+
+  } catch (e) {
+    hideLoading();
+    alert('Error: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  View: Results
+// ─────────────────────────────────────────────────────────────────
+const PORTION_META = {
+  small:       { label: 'Small portion',     cls: 'badge-small' },
+  appropriate: { label: 'Good portion',      cls: 'badge-appropriate' },
+  reduce:      { label: 'Consider reducing', cls: 'badge-reduce' },
+  excessive:   { label: 'Too much',          cls: 'badge-excessive' },
+};
+
+const ALERT_META = {
+  good:    { cls: 'alert-good',    icon: '&#10003;' },
+  caution: { cls: 'alert-caution', icon: '&#9888;'  },
+  warning: { cls: 'alert-warning', icon: '&#9888;'  },
+};
+
+function results(container, params) {
+  container.innerHTML = `
+    <div class="screen">
+      <div class="dash-header-new">
+        <button class="back-link" onclick="navigate('dashboard')" style="margin-right:8px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+               stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="dash-greeting">
+          <div class="dash-greeting-name">Results</div>
+        </div>
+      </div>
+      <div id="results-content">
+        <div class="skeleton" style="height:180px;margin-bottom:8px"></div>
+        <div class="skeleton" style="height:90px;margin-bottom:8px"></div>
+        <div class="skeleton" style="height:90px"></div>
+      </div>
+    </div>
+  `;
+
+  const mealId = params && params.mealId;
+  if (!mealId) {
+    document.getElementById('results-content').innerHTML =
+      '<p class="error-msg">No meal selected.</p>';
+    return;
+  }
+
+  api('/api/meals/detail/' + mealId).then(function(data) {
+    renderResults(data);
+  }).catch(function(e) {
+    const el = document.getElementById('results-content');
+    if (el) el.innerHTML = '<p class="error-msg">Could not load results: ' + esc(e.message) + '</p>';
+  });
+}
+
+function renderResults(data) {
+  const el = document.getElementById('results-content');
+  if (!el) return;
+
+  // Unwrap nested response from /api/meals/detail
+  const meal  = data.meal || data;
+  const items_list = data.items || [];
+  const pa = meal.plate_assessment || {};
+  const am = ALERT_META[pa.alert_level] || ALERT_META.caution;
+  const bannerHtml = pa.overall_message ? `
+    <div class="alert-banner ${am.cls}">
+      ${am.icon} ${esc(pa.overall_message)}
+    </div>
+  ` : '';
+
+  const details = pa.detail_messages || [];
+  const detailHtml = details.length ? `
+    <div class="card" style="padding:14px 18px;margin-bottom:12px">
+      ${details.map(function(m) { return '<p style="font-size:14px;color:var(--muted);margin:4px 0">' + esc(m) + '</p>'; }).join('')}
+    </div>
+  ` : '';
+
+  const origUrl = meal.original_url || null;
+  const annUrl  = meal.annotated_url || null;
+  const imgHtml = (origUrl || annUrl) ? `
+    <div class="image-compare">
+      ${origUrl ? '<div><p class="img-label">Original</p><img src="' + origUrl + '" alt="original"></div>' : ''}
+      ${annUrl  ? '<div><p class="img-label">Detected</p><img src="' + annUrl  + '" alt="annotated"></div>' : ''}
+    </div>
+  ` : '';
+
+  const items = items_list;
+  const itemsHtml = items.map(function(item) {
+    const pm  = PORTION_META[item.portion_category] || { label: item.portion_category, cls: '' };
+    const gi  = item.glycemic_index != null
+      ? '<div class="gi-line">GI: ' + item.glycemic_index + ' &mdash; <strong>' + esc(item.gi_classification) + '</strong></div>'
+      : '';
+    const rec = item.recommendation
+      ? '<div class="food-rec">' + esc(item.recommendation) + '</div>'
+      : '';
+    const nm = (item.food_name || item.class_name || '').replace(/_/g, ' ');
+    return `
+      <div class="card food-result-card">
+        <div class="food-result-header">
+          <span class="food-result-name">${esc(nm)}</span>
+          <span class="badge ${pm.cls}">${pm.label}</span>
+        </div>
+        ${gi}
+        <div class="food-result-macros">
+          ${Math.round(item.estimated_weight_g || 0)}g &middot; ${(item.carbs_g || 0).toFixed(1)}g carbs
+        </div>
+        ${rec}
+      </div>
+    `;
+  }).join('');
+
+  const ratios = (pa.ratios) || {};
+  const ratioBar = function(label, key, colour) {
+    const pct = Math.round((ratios[key] || 0) * 100);
+    return `
+      <div class="ratio-row">
+        <span class="ratio-label">${label}</span>
+        <div class="ratio-track">
+          <div class="ratio-fill" style="width:${pct}%;background:${colour}"></div>
+        </div>
+        <span class="ratio-pct">${pct}%</span>
+      </div>
+    `;
+  };
+  const ratioHtml = (pa.ratios) ? `
+    <div class="ratio-bar">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Plate composition (target: 50% veg / 25% protein / 25% starch)</p>
+      ${ratioBar('Vegetable', 'vegetable', 'var(--success)')}
+      ${ratioBar('Protein',   'protein',   'var(--info)')}
+      ${ratioBar('Starch',    'starch',    'var(--warning)')}
+    </div>
+  ` : '';
+
+  const summaryHtml = `
+    <div class="card summary-card">
+      <h2>Meal Summary</h2>
+      <div class="summary-row">
+        <span>Estimated carbs this meal</span>
+        <strong>~${Math.round(meal.total_carbs_g || 0)}g</strong>
+      </div>
+      ${ratioHtml}
+    </div>
+  `;
+
+  el.innerHTML = bannerHtml + detailHtml + imgHtml + itemsHtml + summaryHtml + `
+    <button class="btn-primary"   style="margin-bottom:12px" onclick="navigate('camera')">Scan Again</button>
+    <button class="btn-secondary" style="margin-bottom:32px" onclick="navigate('dashboard')">Back to Dashboard</button>
+  `;
+
+  saveMealMeta(meal.id, currentMealType, pa.alert_level, meal.total_carbs_g);
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  View: History
+// ─────────────────────────────────────────────────────────────────
+let histOffset = 0;
+const HIST_LIMIT = 20;
+
+function mealHistory(container) {
+  container.innerHTML = `
+    <div class="screen">
+      <div class="dash-header-new">
+        <button class="back-link" onclick="navigate('dashboard')" style="margin-right:8px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+               stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="dash-greeting">
+          <div class="dash-greeting-name">History</div>
+          <div class="dash-greeting-date">${esc(currentUser.name)}</div>
+        </div>
+      </div>
+      <div class="export-btns">
+        <button class="btn-export" onclick="doExport('csv')">&#128196; Export CSV</button>
+        <button class="btn-export" onclick="doExport('pdf')">&#128195; Export PDF</button>
+      </div>
+      <div id="hist-list">
+        <div class="skeleton" style="height:92px;margin-bottom:10px"></div>
+        <div class="skeleton" style="height:92px"></div>
+      </div>
+      <button class="btn-secondary" id="load-more" style="display:none;margin-top:12px" onclick="loadMoreMeals()">
+        Load more
+      </button>
+
+      <div class="bottom-nav">
+        <button class="nav-item" onclick="navigate('dashboard')">${ICONS.home}Home</button>
+        <button class="nav-item active" onclick="navigate('history')">${ICONS.history}History</button>
+        <div class="nav-scan-wrap">
+          <button class="nav-scan-btn" onclick="navigate('camera')">${ICONS.scan}</button>
+          <span class="nav-scan-label">Scan</span>
+        </div>
+        <button class="nav-item" onclick="doExport('csv')">${ICONS.export}Export</button>
+        <button class="nav-item" onclick="navigate('profile')">${ICONS.profile}Profile</button>
+      </div>
+    </div>
+  `;
+  histOffset = 0;
+  loadMeals(true);
+}
+
+function loadMeals(reset) {
+  if (reset) histOffset = 0;
+  api('/api/meals/' + currentUser.id + '?limit=' + HIST_LIMIT + '&offset=' + histOffset)
+    .then(function(meals) {
+      const list = document.getElementById('hist-list');
+      if (!list) return;
+      if (reset) list.innerHTML = '';
+      if (meals.length === 0 && reset) {
+        list.innerHTML = '<p style="color:var(--muted);text-align:center;padding:28px;font-size:17px">No meals recorded yet.</p>';
+        return;
+      }
+      list.insertAdjacentHTML('beforeend', meals.map(mealCard).join(''));
+      histOffset += meals.length;
+      const btn = document.getElementById('load-more');
+      if (btn) btn.style.display = meals.length < HIST_LIMIT ? 'none' : 'block';
+    })
+    .catch(function() {
+      const list = document.getElementById('hist-list');
+      if (list) list.innerHTML = '<p class="error-msg">Failed to load meals.</p>';
+    });
+}
+
+function loadMoreMeals() { loadMeals(false); }
+
+function doExport(fmt) {
+  window.location = '/api/export/' + fmt + '/' + currentUser.id;
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  View: Profile
+// ─────────────────────────────────────────────────────────────────
+function profile(container) {
+  const initials = (currentUser.name || 'U').charAt(0).toUpperCase();
+  container.innerHTML = `
+    <div class="screen">
+      <div class="dash-header-new" style="margin-bottom:24px">
+        <button class="back-link" onclick="navigate('dashboard')" style="margin-right:8px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+               stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="dash-greeting">
+          <div class="dash-greeting-name">Profile</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-bottom:24px">
+        <div class="dash-avatar" style="width:72px;height:72px;font-size:28px;margin:0 auto 10px">
+          ${esc(initials)}
+        </div>
+        <div style="font-size:20px;font-weight:800">${esc(currentUser.name)}</div>
+        <div style="font-size:14px;color:var(--muted)">Diabetic Plate Model</div>
+      </div>
+
+      <div class="card">
+        <h2>Your Details</h2>
+        <label class="form-label">Name</label>
+        <input class="form-input" type="text" id="p-name" value="${esc(currentUser.name)}" maxlength="60">
+        <button class="btn-primary" style="margin-top:16px" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <div class="card">
+        <button class="btn-secondary" onclick="switchUser()">Switch User</button>
+        <button class="btn-danger" style="margin-top:12px" onclick="confirmDelete()">
+          Delete My Data
+        </button>
+      </div>
+
+      <div class="bottom-nav">
+        <button class="nav-item" onclick="navigate('dashboard')">${ICONS.home}Home</button>
+        <button class="nav-item" onclick="navigate('history')">${ICONS.history}History</button>
+        <div class="nav-scan-wrap">
+          <button class="nav-scan-btn" onclick="navigate('camera')">${ICONS.scan}</button>
+          <span class="nav-scan-label">Scan</span>
+        </div>
+        <button class="nav-item" onclick="doExport('csv')">${ICONS.export}Export</button>
+        <button class="nav-item active" onclick="navigate('profile')">${ICONS.profile}Profile</button>
+      </div>
+    </div>
+  `;
+}
+
+function saveProfile() {
+  const name = (document.getElementById('p-name').value || '').trim();
+  if (!name) { alert('Name cannot be empty.'); return; }
+  api('/api/users/' + currentUser.id, {
+    method: 'PUT',
+    body: JSON.stringify({ name: name, daily_carb_target_g: currentUser.daily_carb_target_g }),
+  }).then(function(u) {
+    currentUser = u;
+    dashCache   = null;
+    alert('Profile saved!');
+  }).catch(function(e) { alert('Save failed: ' + e.message); });
+}
+
+function switchUser() {
+  currentUser = null;
+  dashCache   = null;
+  localStorage.removeItem('foodai_uid');
+  navigate('login');
+}
+
+function confirmDelete() {
+  if (!confirm('Delete all data for ' + currentUser.name + '? This cannot be undone.')) return;
+  api('/api/users/' + currentUser.id, { method: 'DELETE' })
+    .then(function() { switchUser(); })
+    .catch(function(e) { alert('Delete failed: ' + e.message); });
+}
+</script>
+</body>
+</html>

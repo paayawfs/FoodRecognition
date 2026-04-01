@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiabeticAI</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fff;
+            color: #1a2744;
+            line-height: 1.6;
+        }
+
+        /* ── Nav ── */
+        nav {
+            position: sticky; top: 0; z-index: 50;
+            background: #1a2744;
+            padding: 1rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            color: #fff;
+        }
+        .nav-left { display: flex; align-items: center; gap: 0.75rem; }
+        .logo {
+            width: 2.5rem; height: 2.5rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 0.85rem;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .nav-title { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.3px; color: #fff; }
+        .nav-sub { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+        .proto-badge {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+            border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.6rem; font-weight: 700;
+            border-radius: 4px; color: rgba(255,255,255,0.7);
+        }
+
+        /* ── Layout ── */
+        .container { max-width: 640px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        /* ── Card ── */
+        .card {
+            border: 2px solid #1a2744;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 3px 3px 0 #1a2744;
+        }
+        .card h2 {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px;
+            color: #888; margin-bottom: 1rem; font-weight: 700;
+        }
+
+        /* ── Food Item ── */
+        .food-item {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.6rem;
+        }
+        .food-item-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 0.6rem;
+        }
+        .food-item-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; }
+        .remove-btn {
+            width: 24px; height: 24px; border: 2px solid #1a2744; background: #fff;
+            font-size: 0.9rem; cursor: pointer; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 1px 1px 0 #1a2744; transition: all 0.1s;
+        }
+        .remove-btn:hover { background: #c0392b; color: #fff; border-color: #c0392b; box-shadow: none; }
+
+        .food-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+        .food-row.full { grid-template-columns: 1fr; }
+
+        .field label {
+            display: block; font-size: 0.65rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 0.2rem;
+        }
+        .field select, .field input {
+            width: 100%; padding: 0.5rem 0.6rem;
+            border: 2px solid #1a2744; border-radius: 4px;
+            font-size: 0.85rem; background: #fff; color: #1a2744;
+        }
+        .field select:focus, .field input:focus { outline: none; box-shadow: 2px 2px 0 #1a2744; }
+        .field input[readonly] { background: #f5f5f5; color: #666; border-color: #ddd; }
+
+        /* ── GL hint ── */
+        .gl-hint { display: flex; align-items: flex-end; }
+        .gl-scale {
+            font-size: 0.7rem; font-weight: 700; padding: 0.5rem 0.6rem;
+            border-radius: 4px; width: 100%; text-align: center; border: 1px solid #ddd;
+        }
+        .gl-low  { background: #f0f0f0; color: #1a2744; border-color: #1a2744; }
+        .gl-med  { background: #f0f0f0; color: #555; border-color: #888; }
+        .gl-high { background: #1a2744; color: #fff; border-color: #1a2744; }
+
+        /* ── Buttons ── */
+        .add-btn {
+            width: 100%; padding: 0.6rem; border: 2px dashed #ccc;
+            background: transparent; color: #999; font-size: 0.85rem;
+            font-weight: 700; cursor: pointer; border-radius: 4px; margin-top: 0.3rem;
+        }
+        .add-btn:hover { border-color: #1a2744; color: #1a2744; background: #f8f9fb; }
+
+        .analyze-btn {
+            width: 100%; padding: 1rem; border: 2px solid #1a2744;
+            background: #1a2744; color: #fff; font-size: 1rem; font-weight: 700;
+            border-radius: 6px; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 1px; box-shadow: 3px 3px 0 #1a2744;
+            transition: all 0.1s;
+        }
+        .analyze-btn:hover { box-shadow: 1px 1px 0 #1a2744; transform: translate(2px, 2px); }
+
+        .reset-btn {
+            width: 100%; padding: 0.8rem; border: 2px solid #1a2744;
+            background: #fff; color: #1a2744; font-size: 0.85rem; font-weight: 700;
+            border-radius: 6px; cursor: pointer; margin-top: 1rem;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .reset-btn:hover { background: #1a2744; color: #fff; box-shadow: none; }
+
+        /* ── Results ── */
+        #results { display: none; }
+
+        .status-banner {
+            padding: 1.2rem 1.5rem; border-radius: 6px; font-weight: 700;
+            font-size: 1.1rem; border: 2px solid #1a2744;
+        }
+        .status-banner .advice { font-size: 0.8rem; font-weight: 400; margin-top: 0.3rem; }
+        .status-safe   { background: #fff; }
+        .status-reduce { background: #f5f5f5; }
+        .status-avoid  { background: #1a2744; color: #fff; }
+
+        .result-item {
+            display: flex; align-items: center;
+            padding: 0.75rem 0; border-bottom: 1px solid #eee;
+        }
+        .result-item:last-child { border-bottom: none; }
+        .result-info { flex: 1; }
+        .result-info .name { font-weight: 700; font-size: 0.9rem; }
+        .result-info .details { font-size: 0.75rem; color: #888; margin-top: 0.1rem; }
+
+        .result-badge {
+            padding: 0.2rem 0.5rem; border-radius: 3px;
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; border: 2px solid #1a2744; white-space: nowrap;
+        }
+        .badge-ok      { background: #fff; color: #1a2744; }
+        .badge-moderate { background: #f5f5f5; color: #1a2744; }
+        .badge-avoid   { background: #1a2744; color: #fff; }
+
+        .summary-box { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.6rem; margin-top: 0.75rem; }
+        .summary-stat {
+            text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 0.8rem 0.4rem;
+        }
+        .summary-stat.highlight { border: 2px solid #1a2744; box-shadow: 2px 2px 0 #1a2744; }
+        .summary-stat .value { font-size: 1.4rem; font-weight: 900; }
+        .summary-stat .label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.1rem; }
+
+        .gl-legend {
+            display: flex; justify-content: center; gap: 1rem;
+            margin-top: 0.75rem; font-size: 0.65rem; color: #999;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* ── Info ── */
+        .info-note {
+            border: 1px solid #d0d7e3; border-radius: 6px;
+            padding: 0.8rem 1rem; font-size: 0.78rem; color: #6b7a90;
+            margin-bottom: 1rem; line-height: 1.5; background: #f4f6f9;
+        }
+        .info-note strong { color: #1a2744; }
+
+        /* ── Footer ── */
+        footer {
+            background: #1a2744; text-align: center;
+            padding: 1.5rem; font-size: 0.7rem; color: rgba(255,255,255,0.5);
+            margin-top: 3rem;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 500px) {
+            .food-row { grid-template-columns: 1fr; }
+            .summary-box { grid-template-columns: 1fr 1fr; }
+            .proto-badge { display: none; }
+            .gl-legend { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-left">
+        <div class="logo">DA</div>
+        <div>
+            <div class="nav-title">DiabeticAI</div>
+            <div class="nav-sub">Food Recognition System</div>
+        </div>
+    </div>
+    <div class="proto-badge">Prototype</div>
+</nav>
+
+<div class="container">
+
+    <div class="info-note">
+        <strong>Wizard of Oz prototype.</strong> On the real device, YOLOv8s-seg + MiDaS detects foods and estimates volumes from a camera image. Here you enter data manually. The recommendation logic is identical to the final system.
+    </div>
+
+    <!-- ── Input ── -->
+    <div class="card" id="input-section">
+        <h2>Meal Input</h2>
+        <div id="food-list"></div>
+        <button class="add-btn" onclick="addFoodItem()">+ Add Food Item</button>
+    </div>
+
+    <div id="analyze-section">
+        <button class="analyze-btn" onclick="analyzeMeal()">Analyze Meal</button>
+    </div>
+
+    <!-- ── Results ── -->
+    <div id="results">
+        <div class="card">
+            <div id="status-banner" class="status-banner"></div>
+        </div>
+        <div class="card">
+            <h2>Food Breakdown</h2>
+            <div id="food-results"></div>
+        </div>
+        <div class="card">
+            <h2>Meal Summary</h2>
+            <div class="summary-box">
+                <div class="summary-stat highlight">
+                    <div class="value" id="total-gl">-</div>
+                    <div class="label">Total GL</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value" id="total-carbs">-</div>
+                    <div class="label">Carbs (g)</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value" id="avg-gi">-</div>
+                    <div class="label">Avg GI</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="value" id="total-vol">-</div>
+                    <div class="label">Vol (cm&sup3;)</div>
+                </div>
+            </div>
+            <div class="gl-legend">
+                <span>GL &le;10 Low</span>
+                <span>GL 11&ndash;19 Med</span>
+                <span>GL &ge;20 High</span>
+            </div>
+        </div>
+        <button class="reset-btn" onclick="resetForm()">Analyze Another Meal</button>
+    </div>
+
+</div>
+
+<footer>
+    Edge AI Food Recognition System &nbsp;&bull;&nbsp; Capstone Project 2025
+    <br>Prototype demonstrates recommendation logic &bull; Carb thresholds based on ADA guidelines (45&ndash;60 g/meal)
+</footer>
+
+<script>
+const FOODS = {
+    "Jollof Rice":      { gi: 53,  density: 0.80, carbsPer100g: 25 },
+    "Banku":            { gi: 73,  density: 1.12, carbsPer100g: 33 },
+    "Fufu":             { gi: 55,  density: 1.15, carbsPer100g: 38 },
+    "Waakye":           { gi: 52,  density: 0.75, carbsPer100g: 25 },
+    "Kenkey":           { gi: 41,  density: 1.18, carbsPer100g: 34 },
+    "Plain Rice":       { gi: 73,  density: 0.70, carbsPer100g: 28 },
+    "Boiled Yam":       { gi: 51,  density: 0.79, carbsPer100g: 27 },
+    "Grilled Tilapia":  { gi: 0,   density: 0.85, carbsPer100g: 0  },
+    "Palm Nut Soup":    { gi: 0,   density: 1.04, carbsPer100g: 5  },
+    "Groundnut Soup":   { gi: 0,   density: 1.06, carbsPer100g: 8  },
+    "Okro Soup":        { gi: 0,   density: 1.02, carbsPer100g: 4  },
+    "Beans":            { gi: 33,  density: 1.01, carbsPer100g: 20 },
+    "Fried Plantain":   { gi: 70,  density: 0.85, carbsPer100g: 32 },
+    "Grilled Chicken":  { gi: 0,   density: 0.85, carbsPer100g: 0  },
+    "Fried Chicken":    { gi: 0,   density: 0.80, carbsPer100g: 0  },
+    "Boiled Egg":       { gi: 0,   density: 1.03, carbsPer100g: 0  },
+    "Fried Fish":       { gi: 0,   density: 0.85, carbsPer100g: 0  },
+    "Shito":            { gi: 0,   density: 0.95, carbsPer100g: 4  },
+    "Red Pepper":       { gi: 0,   density: 0.55, carbsPer100g: 8  }
+};
+
+const FOOD_NAMES = Object.keys(FOODS);
+let foodCounter = 0;
+
+function addFoodItem() {
+    foodCounter++;
+    const id = foodCounter;
+    const div = document.createElement("div");
+    div.className = "food-item";
+    div.id = `food-${id}`;
+    const options = FOOD_NAMES.map(n => `<option value="${n}">${n}</option>`).join("");
+    div.innerHTML = `
+        <div class="food-item-header">
+            <span class="food-item-label">Item #${id}</span>
+            <button class="remove-btn" onclick="removeFoodItem(${id})">&times;</button>
+        </div>
+        <div class="food-row full">
+            <div class="field">
+                <label>Food</label>
+                <select id="select-${id}" onchange="recalc(${id})">
+                    <option value="">-- Select --</option>${options}
+                </select>
+            </div>
+        </div>
+        <div class="food-row" style="margin-top:0.4rem">
+            <div class="field">
+                <label>Volume (cm&sup3;)</label>
+                <input type="number" id="vol-${id}" min="0" step="1" placeholder="e.g. 250" oninput="recalc(${id})">
+            </div>
+            <div class="field">
+                <label>Weight (g)</label>
+                <input type="text" id="wt-${id}" readonly value="-">
+            </div>
+        </div>
+        <div class="food-row" style="margin-top:0.4rem">
+            <div class="field">
+                <label>Carbs (g)</label>
+                <input type="text" id="carbs-${id}" readonly value="-">
+            </div>
+            <div class="field">
+                <label>GI</label>
+                <input type="text" id="gi-${id}" readonly value="-">
+            </div>
+        </div>
+        <div class="food-row" style="margin-top:0.4rem">
+            <div class="field">
+                <label>Glycemic Load</label>
+                <input type="text" id="gl-${id}" readonly value="-">
+            </div>
+            <div class="field gl-hint">
+                <label>&nbsp;</label>
+                <span class="gl-scale" id="gl-hint-${id}"></span>
+            </div>
+        </div>
+    `;
+    document.getElementById("food-list").appendChild(div);
+}
+
+function removeFoodItem(id) {
+    const el = document.getElementById(`food-${id}`);
+    if (el) el.remove();
+    const items = document.querySelectorAll("#food-list .food-item");
+    items.forEach((item, i) => { item.querySelector(".food-item-label").textContent = `Item #${i + 1}`; });
+}
+
+function recalc(id) {
+    const sel = document.getElementById(`select-${id}`);
+    const volInput = document.getElementById(`vol-${id}`);
+    const wtField = document.getElementById(`wt-${id}`);
+    const carbsField = document.getElementById(`carbs-${id}`);
+    const giField = document.getElementById(`gi-${id}`);
+    const glField = document.getElementById(`gl-${id}`);
+    const glHint = document.getElementById(`gl-hint-${id}`);
+
+    const food = FOODS[sel.value];
+    const vol = parseFloat(volInput.value);
+
+    if (!food || isNaN(vol) || vol <= 0) {
+        wtField.value = "-"; carbsField.value = "-";
+        giField.value = food ? food.gi : "-";
+        glField.value = "-"; glHint.textContent = ""; glHint.className = "gl-scale";
+        return;
+    }
+
+    const weight = vol * food.density;
+    const carbs = weight * food.carbsPer100g / 100;
+    const gl = food.gi * carbs / 100;
+
+    wtField.value = weight.toFixed(1);
+    carbsField.value = carbs.toFixed(1);
+    giField.value = food.gi;
+    glField.value = gl.toFixed(1);
+
+    if (gl <= 10) {
+        glHint.textContent = "Low — minimal spike";
+        glHint.className = "gl-scale gl-low";
+    } else if (gl <= 19) {
+        glHint.textContent = "Medium — moderate spike";
+        glHint.className = "gl-scale gl-med";
+    } else {
+        glHint.textContent = "High — significant spike";
+        glHint.className = "gl-scale gl-high";
+    }
+}
+
+function analyzeMeal() {
+    const items = document.querySelectorAll("#food-list .food-item");
+    if (items.length === 0) { alert("Add at least one food item."); return; }
+
+    const results = [];
+    let totalCarbs = 0, totalGL = 0, giSum = 0, giCount = 0, totalVol = 0, valid = false;
+
+    items.forEach(item => {
+        const id = item.id.replace("food-", "");
+        const sel = document.getElementById(`select-${id}`);
+        const vol = parseFloat(document.getElementById(`vol-${id}`).value);
+        const food = FOODS[sel.value];
+        if (!food || isNaN(vol) || vol <= 0) return;
+        valid = true;
+
+        const weight = vol * food.density;
+        const carbs = weight * food.carbsPer100g / 100;
+        const gl = food.gi * carbs / 100;
+
+        totalCarbs += carbs; totalGL += gl; totalVol += vol;
+        if (food.gi > 0) { giSum += food.gi; giCount++; }
+
+        let flag, flagClass, badgeClass;
+        if (gl >= 20) { flag = "HIGH GL"; flagClass = "avoid-item"; badgeClass = "badge-avoid"; }
+        else if (gl >= 11) { flag = "MED GL"; flagClass = "moderate"; badgeClass = "badge-moderate"; }
+        else { flag = "LOW GL"; flagClass = "ok"; badgeClass = "badge-ok"; }
+
+        results.push({ name: sel.value, vol, weight, carbs, gi: food.gi, gl, flag, flagClass, badgeClass });
+    });
+
+    if (!valid) { alert("Select a food and enter a volume."); return; }
+    const avgGI = giCount > 0 ? giSum / giCount : 0;
+
+    let statusClass, statusText, advice;
+    if (totalGL > 30 || totalCarbs > 60) {
+        statusClass = "status-avoid";
+        statusText = "\u2717 AVOID THIS MEAL";
+        advice = totalGL > 30
+            ? `Total GL is ${totalGL.toFixed(1)} (high). This will cause a significant blood sugar spike. Reduce portions or swap high-GL items.`
+            : "Total carbs exceed 60g. Remove high-carb items or reduce portions.";
+    } else if (totalGL > 20 || totalCarbs > 45) {
+        statusClass = "status-reduce";
+        statusText = "\u26A0 REDUCE PORTION";
+        advice = totalGL > 20
+            ? `Total GL is ${totalGL.toFixed(1)} (medium-high). Reduce starchy portions or add protein/fat sides.`
+            : "Total carbs are 46\u201360g. Slightly reduce the starchy portion.";
+    } else {
+        statusClass = "status-safe";
+        statusText = "\u2713 SAFE TO EAT";
+        advice = `Total GL is ${totalGL.toFixed(1)} (low). Manageable blood sugar impact.`;
+    }
+
+    document.getElementById("status-banner").className = `status-banner ${statusClass}`;
+    document.getElementById("status-banner").innerHTML = `${statusText}<div class="advice">${advice}</div>`;
+
+    document.getElementById("food-results").innerHTML = results.map(r => `
+        <div class="result-item">
+            <div class="result-info">
+                <div class="name">${r.name}</div>
+                <div class="details">${r.vol} cm&sup3; &middot; ${r.weight.toFixed(1)}g &middot; ${r.carbs.toFixed(1)}g carbs &middot; GI ${r.gi} &middot; GL ${r.gl.toFixed(1)}</div>
+            </div>
+            <span class="result-badge ${r.badgeClass}">${r.flag}</span>
+        </div>
+    `).join("");
+
+    document.getElementById("total-carbs").textContent = totalCarbs.toFixed(1);
+    document.getElementById("total-gl").textContent = totalGL.toFixed(1);
+    document.getElementById("avg-gi").textContent = giCount > 0 ? avgGI.toFixed(0) : "N/A";
+    document.getElementById("total-vol").textContent = totalVol.toFixed(0);
+
+    document.getElementById("results").style.display = "block";
+    document.getElementById("input-section").style.display = "none";
+    document.getElementById("analyze-section").style.display = "none";
+    document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+}
+
+function resetForm() {
+    document.getElementById("results").style.display = "none";
+    document.getElementById("input-section").style.display = "block";
+    document.getElementById("analyze-section").style.display = "block";
+    document.getElementById("food-list").innerHTML = "";
+    foodCounter = 0;
+    addFoodItem();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+addFoodItem();
+</script>
+</body>
+</html>

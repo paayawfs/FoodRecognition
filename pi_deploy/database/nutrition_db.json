@@ -1,0 +1,212 @@
+{
+  "jollof_rice": {
+    "name": "Jollof Rice",
+    "per_100g": {
+      "calories": 175,
+      "carbs": 32,
+      "protein": 4.5,
+      "fat": 3.2,
+      "fiber": 1.2
+    },
+    "glycemic_index": 70,
+    "gi_classification": "High",
+    "density": 0.55,
+    "gda_serving_g": 73
+  },
+  "waakye": {
+    "name": "Waakye",
+    "per_100g": {
+      "calories": 165,
+      "carbs": 28,
+      "protein": 6.5,
+      "fat": 2.0,
+      "fiber": 4.5
+    },
+    "glycemic_index": 55,
+    "gi_classification": "Medium",
+    "density": 0.6,
+    "gda_serving_g": 77
+  },
+  "banku": {
+    "name": "Banku",
+    "per_100g": {
+      "calories": 165,
+      "carbs": 28,
+      "protein": 2.1,
+      "fat": 0.5,
+      "fiber": 0.8
+    },
+    "glycemic_index": 73,
+    "gi_classification": "High",
+    "density": 0.5,
+    "gda_serving_g": 84
+  },
+  "fufu": {
+    "name": "Fufu",
+    "per_100g": {
+      "calories": 170,
+      "carbs": 40,
+      "protein": 1.5,
+      "fat": 0.3,
+      "fiber": 1.0
+    },
+    "glycemic_index": 55,
+    "gi_classification": "Low",
+    "density": 0.55,
+    "gda_serving_g": 62
+  },
+  "plain_rice": {
+    "name": "Plain Rice",
+    "per_100g": {
+      "calories": 130,
+      "carbs": 28,
+      "protein": 2.7,
+      "fat": 0.3,
+      "fiber": 0.4
+    },
+    "glycemic_index": 73,
+    "gi_classification": "High",
+    "density": 0.55,
+    "gda_serving_g": 72
+  },
+  "fried_plantain": {
+    "name": "Fried Plantain",
+    "per_100g": {
+      "calories": 250,
+      "carbs": 35,
+      "protein": 1.2,
+      "fat": 12.0,
+      "fiber": 2.3
+    },
+    "glycemic_index": 70,
+    "gi_classification": "High",
+    "density": 0.45,
+    "gda_serving_g": 39
+  },
+  "grilled_chicken": {
+    "name": "Grilled Chicken",
+    "per_100g": {
+      "calories": 165,
+      "carbs": 0,
+      "protein": 31,
+      "fat": 3.6,
+      "fiber": 0
+    },
+    "glycemic_index": 0,
+    "gi_classification": "Low",
+    "density": 0.85,
+    "gda_serving_g": null
+  },
+  "tilapia": {
+    "name": "Tilapia",
+    "per_100g": {
+      "calories": 130,
+      "carbs": 0,
+      "protein": 26,
+      "fat": 2.7,
+      "fiber": 0
+    },
+    "glycemic_index": 0,
+    "gi_classification": "Low",
+    "density": 0.8,
+    "gda_serving_g": null
+  },
+  "fried_fish": {
+    "name": "Fried Fish",
+    "per_100g": {
+      "calories": 190,
+      "carbs": 5,
+      "protein": 20,
+      "fat": 10.0,
+      "fiber": 0
+    },
+    "glycemic_index": 0,
+    "gi_classification": "Low",
+    "density": 0.75,
+    "gda_serving_g": null
+  },
+  "beans": {
+    "name": "Beans",
+    "per_100g": {
+      "calories": 132,
+      "carbs": 22,
+      "protein": 8.7,
+      "fat": 0.5,
+      "fiber": 6.4
+    },
+    "glycemic_index": 28,
+    "gi_classification": "Low",
+    "density": 0.65,
+    "gda_serving_g": 115
+  },
+  "boiled_egg": {
+    "name": "Boiled Egg",
+    "per_100g": {
+      "calories": 155,
+      "carbs": 1.1,
+      "protein": 13,
+      "fat": 11,
+      "fiber": 0
+    },
+    "glycemic_index": 0,
+    "gi_classification": "Low",
+    "density": 1.03,
+    "gda_serving_g": null
+  },
+  "okro_soup": {
+    "name": "Okro Soup",
+    "per_100g": {
+      "calories": 60,
+      "carbs": 7,
+      "protein": 3.0,
+      "fat": 2.5,
+      "fiber": 3.0
+    },
+    "glycemic_index": 20,
+    "gi_classification": "Low",
+    "density": 0.9,
+    "gda_serving_g": null
+  },
+  "light_soup": {
+    "name": "Light Soup",
+    "per_100g": {
+      "calories": 45,
+      "carbs": 5,
+      "protein": 3.0,
+      "fat": 2.0,
+      "fiber": 1.0
+    },
+    "glycemic_index": 20,
+    "gi_classification": "Low",
+    "density": 0.95,
+    "gda_serving_g": null
+  },
+  "shito": {
+    "name": "Shito",
+    "per_100g": {
+      "calories": 180,
+      "carbs": 8,
+      "protein": 5.0,
+      "fat": 15,
+      "fiber": 2.0
+    },
+    "glycemic_index": 10,
+    "gi_classification": "Low",
+    "density": 0.9,
+    "gda_serving_g": null
+  },
+  "salad": {
+    "name": "Salad",
+    "per_100g": {
+      "calories": 20,
+      "carbs": 3,
+      "protein": 1.5,
+      "fat": 0.3,
+      "fiber": 2.0
+    },
+    "glycemic_index": 15,
+    "gi_classification": "Low",
+    "density": 0.3,
+    "gda_serving_g": null
+  }
+}

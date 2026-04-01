@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghanaian Food Analyzer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #fff; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; margin: 30px 0; font-size: 2em; background: linear-gradient(90deg, #00d4ff, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
+        .upload-area { border: 2px dashed #444; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 20px; transition: all 0.3s; cursor: pointer; background: rgba(255,255,255,0.02); }
+        .upload-area:hover, .upload-area.dragover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+        .upload-area input { display: none; }
+        .btn { background: linear-gradient(90deg, #00d4ff, #7c3aed); border: none; padding: 14px 32px; border-radius: 8px; color: #fff; font-size: 1em; cursor: pointer; margin: 10px; transition: transform 0.2s; }
+        .btn:hover { transform: scale(1.05); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        #preview { max-width: 100%; border-radius: 12px; margin: 20px 0; display: none; }
+        .results { display: none; background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; margin-top: 20px; }
+        .results h2 { margin-bottom: 16px; color: #00d4ff; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; font-weight: 500; }
+        .totals td { font-weight: bold; border-top: 2px solid #00d4ff; }
+        .rating { padding: 16px; border-radius: 12px; margin: 16px 0; text-align: center; }
+        .rating.green { background: rgba(34,197,94,0.2); border: 1px solid #22c55e; }
+        .rating.yellow { background: rgba(234,179,8,0.2); border: 1px solid #eab308; }
+        .rating.orange { background: rgba(249,115,22,0.2); border: 1px solid #f97316; }
+        .rating.red { background: rgba(239,68,68,0.2); border: 1px solid #ef4444; }
+        .rating h3 { margin-bottom: 8px; }
+        .recommendations { background: rgba(124,58,237,0.1); border-radius: 12px; padding: 16px; margin: 16px 0; }
+        .recommendations li { margin: 8px 0; list-style: none; }
+        .annotated-img { width: 100%; border-radius: 12px; margin-top: 16px; }
+        .loading { display: none; text-align: center; padding: 40px; }
+        .spinner { width: 50px; height: 50px; border: 4px solid #333; border-top-color: #00d4ff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .columns { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Ghanaian Food Analyzer</h1>
+        <p class="subtitle">AI-powered food recognition with diabetic dietary recommendations</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="imageInput" accept="image/*">
+            <p>📸 Drag & drop a meal photo or click to upload</p>
+        </div>
+        
+        <img id="preview" alt="Preview">
+        <div style="text-align: center;">
+            <button class="btn" id="analyzeBtn" disabled>Analyze Meal</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing your meal...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <div class="columns">
+                <div>
+                    <h2>Detected Foods</h2>
+                    <table id="foodsTable">
+                        <thead><tr><th>Food</th><th>Weight</th><th>Calories</th><th>Carbs</th><th>GL</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h2>Analysis</h2>
+                    <img id="annotatedImg" class="annotated-img" alt="Annotated">
+                </div>
+            </div>
+            
+            <div class="rating" id="rating"></div>
+            
+            <div class="recommendations">
+                <h3>📋 Recommendations</h3>
+                <ul id="recommendations"></ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const preview = document.getElementById('preview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        
+        let selectedFile = null;
+        
+        uploadArea.addEventListener('click', () => imageInput.click());
+        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        imageInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+        
+        function handleFile(file) {
+            selectedFile = file;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            analyzeBtn.disabled = false;
+            results.style.display = 'none';
+        }
+        
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            analyzeBtn.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            
+            try {
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error);
+                
+                // Populate foods table
+                const tbody = document.querySelector('#foodsTable tbody');
+                tbody.innerHTML = data.foods.map(f => 
+                    `<tr><td>${f.name}</td><td>${f.weight_g}g</td><td>${f.calories}</td><td>${f.carbs}g</td><td>${f.gl}</td></tr>`
+                ).join('') + `<tr class="totals"><td>TOTAL</td><td>-</td><td>${data.totals.calories}</td><td>${data.totals.carbs}g</td><td>${data.totals.gl}</td></tr>`;
+                
+                // Rating
+                const rating = document.getElementById('rating');
+                rating.className = 'rating ' + data.rating.color;
+                rating.innerHTML = `<h3>${data.rating.level} Glycemic Load</h3><p>${data.rating.message}</p>`;
+                
+                // Recommendations
+                document.getElementById('recommendations').innerHTML = data.recommendations.map(r => `<li>${r}</li>`).join('');
+                
+                // Annotated image
+                document.getElementById('annotatedImg').src = 'data:image/jpeg;base64,' + data.annotated_image;
+                
+                results.style.display = 'block';
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Core
+flask>=2.3
+numpy>=1.24
+opencv-python-headless>=4.8
+Pillow>=10.0
+
+# AI / inference
+ultralytics>=8.0
+timm>=0.9          # MiDaS dependency
+
+# torch — install the CPU wheel separately on Pi:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch>=2.0
+torchvision>=0.15
+
+# Camera (Pi only — install via apt, not pip)
+# sudo apt install -y python3-picamera2

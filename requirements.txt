@@ -1,0 +1,30 @@
+# Edge AI Food Identification System — Dependencies
+
+# Core ML
+ultralytics>=8.0.0          # YOLOv8 with segmentation
+torch>=2.0.0                # PyTorch backend
+torchvision>=0.15.0         # Vision utilities (MiDaS dependency)
+timm>=0.9.0                 # Image model library (MiDaS uses timm)
+
+# Image processing
+opencv-python>=4.8.0        # Image manipulation + Hough circles
+Pillow>=10.0.0              # Image loading
+
+# Web interface
+flask>=3.0.0                # Web framework (SPA backend)
+flask-cors>=4.0.0           # Cross-origin requests (dev convenience)
+
+# Utilities
+numpy>=1.24.0               # Numerical operations
+requests>=2.31.0            # Model/weight downloads
+tqdm>=4.66.0                # Progress bars
+
+# Export
+fpdf2>=2.7.0                # PDF meal report generation
+
+# Raspberry Pi camera (install separately on Pi via apt, not pip)
+# sudo apt install -y python3-picamera2
+# picamera2                 # do NOT pip install — apt only on Pi
+
+# Optional: ONNX runtime for exported model inference on Pi
+# onnxruntime>=1.16.0

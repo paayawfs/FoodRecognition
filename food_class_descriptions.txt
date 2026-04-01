@@ -1,0 +1,165 @@
+DIABETICAI — FOOD CLASS DESCRIPTIONS FOR SAM2 SEGMENTATION
+===========================================================
+20 classes (19 foods + 1 plate). Each description covers visual appearance, color, texture,
+shape, typical plating, and how to distinguish from similar foods.
+
+
+1. JOLLOF RICE (jollof_rice)
+   Color: Deep orange-red to reddish-brown, uniform throughout
+   Texture: Individual grains visible but coated in tomato-based sauce; slightly oily sheen
+   Shape: Mound or spread on plate; loose grain structure
+   Plating: Usually served as a mound, sometimes with protein on top or beside it
+   Key visual cues: Orange/red color from tomato and pepper sauce distinguishes it from plain rice; may have visible tomato pieces, onion bits, or green pepper flecks
+   Distinguish from: Plain rice (white vs red-orange), waakye (waakye has brown/purple tint from millet leaves)
+
+2. BANKU (banku)
+   Color: White to off-white, sometimes slightly grey or yellowish
+   Texture: Smooth, dense, sticky dough; no visible grains; slightly glossy surface
+   Shape: Large round or oval ball, sometimes flattened on one side from the plate
+   Plating: Single large ball on plate, always served with soup or stew on the side
+   Key visual cues: Smooth fermented corn-cassava dough ball; denser and whiter than fufu; no cracks or rough surface
+   Distinguish from: Fufu (fufu is smoother and more elastic, slightly more yellowish), kenkey (kenkey is wrapped in leaves and has a firmer, more compact shape)
+
+3. FUFU (fufu)
+   Color: White to pale yellow, sometimes light cream
+   Texture: Very smooth, elastic, stretchy dough; shiny/glossy surface from pounding
+   Shape: Round or dome-shaped ball sitting in soup; smooth surface with possible indentation from fingers
+   Plating: Ball submerged or sitting in a bowl of soup; often partially covered by soup
+   Key visual cues: Pounded cassava/plantain dough; very smooth and elastic; sits in soup bowl; glossy
+   Distinguish from: Banku (banku is slightly rougher, more grey-white; fufu is smoother and sits in soup), TZ (TZ is more yellow from corn)
+
+4. WAAKYE (waakye)
+   Color: Brown to dark reddish-brown, sometimes purple-brown tint
+   Texture: Rice and beans visible as distinct grains/pieces; slightly sticky
+   Shape: Mound on plate; can see individual rice grains and bean pieces
+   Plating: Usually on a plate or wrapped in millet stalk leaves (waakye leaves); often accompanied by spaghetti, gari, egg, stew, shito
+   Key visual cues: Brown/purple-tinted rice from dried millet leaves; visible bean pieces mixed in; darker than jollof
+   Distinguish from: Jollof rice (jollof is orange-red, waakye is brown-purple), plain rice (plain rice is white)
+
+5. KENKEY (kenkey)
+   Color: White to pale grey (Ga kenkey) or yellowish (Fante kenkey); outer wrapper is green/brown corn husk or banana leaf
+   Texture: Dense, firm, slightly crumbly fermented corn dough; grainy texture visible when broken
+   Shape: Cylindrical or oblong ball wrapped in corn husks or banana leaves; leaf wrapping visible
+   Plating: Often served still partially wrapped; cut open or broken apart on plate; paired with pepper sauce and fish
+   Key visual cues: Wrapped in leaves (corn husk or banana leaf); compact cylindrical shape; fermented corn smell
+   Distinguish from: Banku (banku is unwrapped and softer; kenkey is firmer and wrapped in leaves)
+
+6. PLAIN RICE (plain_rice)
+   Color: White, bright and clean
+   Texture: Individual grains clearly visible; fluffy and separate; no sauce coating
+   Shape: Mound or pile on plate; loose grain structure
+   Plating: White mound on plate, usually with stew, soup, or sauce served alongside or on top
+   Key visual cues: Plain white individual grains with no coloring; may have slight translucency
+   Distinguish from: Jollof rice (jollof is orange-red), waakye (waakye is brown-purple)
+
+7. BOILED YAM (boiled_yam)
+   Color: White to cream/ivory; may have slight yellowish tint
+   Texture: Smooth, firm, starchy flesh; can see cut faces with dense starchy interior; no crust
+   Shape: Thick slices, chunks, or wedges; rectangular or semi-circular cut pieces
+   Plating: Sliced pieces arranged on plate; often served with stew, egg sauce, or kontomire
+   Key visual cues: White starchy flesh with smooth cut surfaces; thick chunky pieces; no browning or crust
+   Distinguish from: Fried yam (fried yam has golden-brown crispy exterior), boiled potato (yam pieces are usually larger and more fibrous)
+
+8. GRILLED TILAPIA (grilled_tilapia)
+   Color: Golden-brown to dark brown exterior; charred/blackened spots from grilling; white flesh inside
+   Texture: Crispy charred skin; flaky white flesh visible where skin is broken; scoring marks on body
+   Shape: Whole fish shape — oval body, visible head, tail, fins; often scored with diagonal cuts
+   Plating: Whole fish on plate or tray; often with sliced onions, tomatoes, pepper; sometimes on banana leaf
+   Key visual cues: Whole fish silhouette; diagonal score marks on body; charred golden-brown skin; fins and tail visible
+   Distinguish from: Fried fish (fried fish is more uniformly golden, battered; grilled has char marks and natural fish shape)
+
+9. PALM NUT SOUP (palm_nut_soup)
+   Color: Deep orange to dark reddish-orange; rich oily color from palm fruit extract
+   Texture: Thick, oily, slightly grainy liquid; visible oil layer on surface; may have meat/fish pieces
+   Shape: Liquid in bowl; thick consistency; pools of orange palm oil visible on surface
+   Plating: Served in bowl; fufu or rice ball may sit in or beside it; visible chunks of meat, fish, or crab
+   Key visual cues: Distinctive deep orange color from palm fruit; oily surface; thicker than most soups
+   Distinguish from: Groundnut soup (groundnut is lighter, more beige/tan), tomato stew (tomato is redder, less orange)
+
+10. GROUNDNUT SOUP (groundnut_soup)
+    Color: Light brown to tan/beige; peanut butter color
+    Texture: Smooth, creamy, thick liquid; slightly grainy from ground peanuts; oily sheen
+    Shape: Liquid in bowl; creamy consistency; meat pieces may be visible
+    Plating: Served in bowl with fufu, rice, or banku; chunks of chicken, goat, or fish visible
+    Key visual cues: Distinctive peanut-butter brown/tan color; creamy thick texture; lighter than palm nut soup
+    Distinguish from: Palm nut soup (palm nut is deep orange, groundnut is tan/brown), light soup (light soup is more watery and yellow)
+
+11. OKRO SOUP (okro_soup)
+    Color: Dark green to olive green; sometimes brownish-green
+    Texture: Very slimy/viscous and thick; stringy mucilaginous texture when stirred; visible cut okra pieces
+    Shape: Thick viscous liquid in bowl; draws strings when lifted with spoon; visible sliced okra rounds
+    Plating: Served in bowl alongside banku or fufu; visible sliced okra pieces; may contain fish, crab, or meat
+    Key visual cues: Green slimy/mucilaginous texture is unmistakable; visible okra cross-sections (round with seeds); draws strings
+    Distinguish from: Other green soups/stews; the slimy stringy texture is unique to okro soup
+
+12. BEANS (beans)
+    Color: Brown, tan, or cream colored; black-eyed peas have distinctive black spot on each bean
+    Texture: Soft cooked individual beans; slightly mushy exterior with intact bean shapes; may be in light sauce
+    Shape: Individual oval/kidney bean shapes visible in a mound or bowl; some may be slightly split
+    Plating: Served as a mound on plate or in bowl; may have oil/sauce; sometimes with rice or plantain
+    Key visual cues: Individual bean shapes clearly visible; black-eyed peas have characteristic black eye marking; soft cooked texture
+    Distinguish from: Waakye (waakye has rice mixed in; beans alone have no rice grains)
+
+13. FRIED PLANTAIN (fried_plantain)
+    Color: Golden-yellow to golden-brown from frying; darker caramelized edges
+    Texture: Crispy fried exterior; soft sweet plantain interior; oily surface
+    Shape: Oval slices or half-moon shapes, typically 1-2cm thick; sometimes cut into chunks
+    Plating: Arranged in a row or pile on plate; often served alongside rice, beans, or stew
+    Key visual cues: Golden-yellow fried slices with caramelized edges; sweet ripe plantain visible inside; oval or curved slice shape
+    Distinguish from: Boiled yam (yam is white, not golden), kelewele (kelewele is cubed and spiced, fried plantain is sliced)
+
+14. GRILLED CHICKEN (grilled_chicken)
+    Color: Golden-brown to dark brown exterior; charred black spots; white/light brown flesh inside
+    Texture: Charred crispy skin with grill marks; moist flesh visible at cuts; sometimes seasoned coating visible
+    Shape: Chicken pieces — drumsticks, thighs, breast portions, wings, or whole spatchcocked
+    Plating: Pieces on plate; may have grill marks; often with sliced onions, jollof, or sides
+    Key visual cues: Char marks/grill lines on surface; golden-brown seasoned skin; recognizable chicken piece shapes (leg, wing, breast)
+    Distinguish from: Fried chicken (fried has uniform crispy coating; grilled has char marks and more natural skin texture)
+
+15. FRIED CHICKEN (fried_chicken)
+    Color: Golden to deep golden-brown; uniform color from frying; crispy coating
+    Texture: Crunchy crispy exterior; breaded or battered coating; oily sheen
+    Shape: Chicken pieces — drumsticks, thighs, breast, wings; coating adds volume to shape
+    Plating: Pieces on plate, often stacked; may be on paper to absorb oil; served with jollof, fries, or salad
+    Key visual cues: Uniform golden crispy coating; no char marks; crunchy battered exterior; recognizable chicken shapes beneath coating
+    Distinguish from: Grilled chicken (grilled has char marks and natural skin; fried has uniform crispy batter)
+
+16. BOILED EGG (boiled_egg)
+    Color: White exterior shell or peeled smooth white; bright yellow yolk when cut open
+    Texture: Smooth firm white exterior when peeled; dense yellow yolk center when halved
+    Shape: Oval/egg shape when whole; when halved shows white ring surrounding yellow yolk circle
+    Plating: Often halved showing yolk; may be whole on plate; served alongside waakye, rice, or salad
+    Key visual cues: Distinctive egg shape; when halved the white-yellow contrast is unmistakable; smooth oval form
+    Distinguish from: Fried egg (fried has irregular flat shape with visible oil; boiled is a clean oval)
+
+17. SHITO (shito)
+    Color: Very dark brown to black; almost jet black when concentrated
+    Texture: Oily, thick paste with small visible pieces of dried shrimp/fish; gritty grainy texture
+    Shape: Small dollop, smear, or pool on plate; paste/sauce consistency; never a main item
+    Plating: Small portion on side of plate as condiment; thin layer spread on food; served in small dish
+    Key visual cues: Very dark (almost black) oily paste; small quantity as condiment; visible tiny dried shrimp/fish pieces
+    Distinguish from: Soy sauce (soy is liquid; shito is thick paste), other dark sauces (shito has visible dried seafood particles)
+
+18. FRIED FISH (fried_fish)
+    Color: Golden-brown to deep brown; uniform crispy coating; white flaky flesh inside
+    Texture: Crunchy crispy fried exterior; may have light flour or batter coating; oily sheen on surface
+    Shape: Whole fish shape (tilapia, herrings) or fish pieces/fillets; often flattened from frying; fins may be crispy and spread out
+    Plating: Whole fried fish or pieces on plate; often on paper to absorb oil; served with kenkey, banku, yam, or rice; accompanied by pepper sauce and sliced onions
+    Key visual cues: Uniform golden-brown fried coating; no char marks (unlike grilled); crispy fins and tail; oil-shiny surface; may see batter bubbles on surface
+    Distinguish from: Grilled tilapia (grilled has char marks, blackened spots, and natural skin texture; fried has uniform golden coating), fried chicken (chicken has thicker body and limb shapes; fish is flatter with fins and tail)
+
+19. RED PEPPER (red_pepper)
+    Color: Bright red to dark red; vibrant red color
+    Texture: Smooth glossy skin; firm flesh; visible seeds and membrane inside when cut
+    Shape: Elongated pointed shape (chili) or bell shape (sweet pepper); curved tapering body
+    Plating: Whole peppers, sliced, or chopped; may be part of a garnish; sometimes in a small dish
+    Key visual cues: Bright red color; smooth shiny skin; elongated tapered shape for chili; green stem at top
+    Distinguish from: Tomato (tomato is round and softer; pepper is elongated and firmer), shito (shito is dark/black paste; red pepper is bright red solid)
+
+20. PLATE (plate)
+    Color: Typically white, cream, off-white, or patterned; may also be colored ceramic, melamine, or metal
+    Texture: Smooth flat surface; glossy or matte finish; may have decorative patterns or ridges on rim
+    Shape: Circular or oval with a raised rim/edge forming a clear boundary; flat center where food sits; may also be a bowl with curved sides
+    Plating: The plate IS the serving surface — it sits underneath and around all the food items
+    Key visual cues: Circular rim forming a clear boundary around the food; flat surface visible between food items; consistent color/pattern around the edge; shadow or table visible beyond the rim
+    Distinguish from: Table surface (table extends beyond the plate rim; plate has a defined circular edge), food items (food sits ON TOP of the plate surface)

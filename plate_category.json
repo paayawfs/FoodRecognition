@@ -1,0 +1,17 @@
+{
+  "Jollof_Rice": "starch_spread",
+  "Waakye": "starch_spread",
+  "Plain_Rice": "starch_spread",
+  "Fried_Plantain": "starch_spread",
+  "Banku": "starch_moulded",
+  "Fufu": "starch_moulded",
+  "Beans": "protein",
+  "Grilled_Chicken": "protein",
+  "Tilapia": "protein",
+  "Fried_Fish": "protein",
+  "Boiled_Egg": "protein",
+  "Okro_Soup": "soup_sauce",
+  "Light_Soup": "soup_sauce",
+  "Shito": "soup_sauce",
+  "Salad": "vegetable"
+}

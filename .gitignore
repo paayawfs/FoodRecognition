@@ -1,0 +1,8 @@
+__pycache__/ 
+*.pt 
+*.db 
+.claude/ 
+data/ 
+dataset/ 
+dataset_round2/ 
+best_ncnn_model*/ 
