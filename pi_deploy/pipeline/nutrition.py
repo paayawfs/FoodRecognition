@@ -1,59 +1,49 @@
 """
-Nutrition database lookup and recommendation generation (v3.3).
+Nutrition database lookup and recommendation generation (v3.3.1).
+Three-level Diabetic Plate Model: area composition / starch portion / glycemic load.
 """
 import json
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from config import NUTRITION_DB_PATH
 
-# v3.3: starch_spread now assessed via GDA serving weights (not just plate ratio).
-#        soup_sauce excluded from plate ratio.
-PLATE_CATEGORY = {
+# v3.3.1: Moulded starches use orange-reference volume; spread starches use GDA weight.
+FOOD_CATEGORIES = {
+    'Salad':           'vegetable',
+    'Tilapia':         'protein',
+    'Grilled_Chicken': 'protein',
+    'Fried_Fish':      'protein',
+    'Beans':           'protein',
+    'Boiled_Egg':      'protein',
+    'Fufu':            'starch_moulded',
+    'Banku':           'starch_moulded',
+    'Rice_Balls':      'starch_moulded',
+    'Tuo_Zaafi':       'starch_moulded',
     'Jollof_Rice':     'starch_spread',
     'Waakye':          'starch_spread',
     'Plain_Rice':      'starch_spread',
     'Fried_Plantain':  'starch_spread',
-    'Banku':           'starch_moulded',
-    'Fufu':            'starch_moulded',
-    'Beans':           'protein',
-    'Grilled_Chicken': 'protein',
-    'Tilapia':         'protein',
-    'Fried_Fish':      'protein',
-    'Boiled_Egg':      'protein',
     'Okro_Soup':       'soup_sauce',
     'Light_Soup':      'soup_sauce',
     'Shito':           'soup_sauce',
-    'Salad':           'vegetable',
+    'Plate':           'ignored',
 }
 
-# GDA serving thresholds (number of servings, where 1 serving = 20g carbs).
+# Backward-compat alias (used by generate_item_recommendation)
+PLATE_CATEGORY = FOOD_CATEGORIES
+
+# GDA standard serving weights for spread starches (grams).
 # Source: Ghana Dietetic Association Standard Serving Sizes (Lartey et al. 1999).
-GDA_SPREAD_THRESHOLDS = {
-    'small':       0.75,
-    'appropriate': 2.00,   # up to 2 servings = ~40g carbs from starch
-    'reduce':      3.00,
+GDA_SERVING_G = {
+    'Jollof_Rice':    180,
+    'Waakye':         170,
+    'Plain_Rice':     180,
+    'Fried_Plantain': 120,
 }
 
-_STARCH_REC = {
-    'small':       'Your {food} portion is small.',
-    'appropriate': 'Your {food} portion looks good.',
-    'reduce':      'Consider reducing your {food}. Aim for about the size of a medium orange.',
-    'excessive':   'Your {food} portion is too large. It should be about the size of a medium orange.',
-}
-
-_PROTEIN_REC = {
-    'small':       'Your {food} is a small serving — a good choice.',
-    'appropriate': 'Good {food} portion.',
-    'reduce':      'Your {food} portion is generous.',
-    'excessive':   'Consider a smaller serving of {food}.',
-}
-
-_VEG_REC = {
-    'small':       'Add more {food} to help slow glucose absorption.',
-    'appropriate': 'Good amount of {food}.',
-    'reduce':      'Plenty of {food} — great for blood sugar control.',
-    'excessive':   'Plenty of {food} — great for blood sugar control.',
-}
+ORANGE_REFERENCE_CM3 = 220   # medium orange, dietician-confirmed
+GL_LOW_MAX    = 10            # GL < 10  → Low
+GL_MEDIUM_MAX = 20            # GL 10–19 → Medium  (≥ 20 → High)
 
 
 def load_nutrition_db(path=None):
@@ -118,241 +108,207 @@ LCD_MESSAGES = {
 }
 
 
-# ── Plate-level assessment (synced with notebook v3.1) ───────────────────────
+# ── Three-level recommendation engine (v3.3.1) ───────────────────────────────
 
-def classify_plate_composition(items, plate_area_px=0):
+def generate_recommendation(detections, plate_area_px=0, nutrition_db=None):
     """
-    Assess plate composition against the 50/25/25 Diabetic Plate Model.
-    Uses mask pixel AREAS (not volume) for ratio computation.
+    Three-level Diabetic Plate Model (v3.3.1).
 
-    v3.1: starch_moulded and starch_spread both count as 'starch'.
-          soup_sauce items are excluded from the ratio (accompaniments).
+    detections: list of dicts, each with:
+        class_name    (str)
+        area_px       (int)    — mask pixel count
+        volume_cm3    (float)
+        weight_g      (float)
+        gi            (int)    — glycemic index from nutrition DB
+        carbs_per_100g (float) — carbs per 100 g from nutrition DB
 
-    items: list of dicts with 'class_name' and 'mask' (H x W uint8).
+    Returns dict: plate_assessment, recommendations (level1/level2/level3),
+                  items, total_carbs_g.
     """
-    import numpy as np
-    cat_px = {'starch': 0, 'protein': 0, 'vegetable': 0}
 
-    for item in items:
-        cat  = PLATE_CATEGORY.get(item['class_name'], 'unknown')
-        mask = item.get('mask')
-        area = int(mask.sum()) if mask is not None else 0
-        if cat in ('starch_moulded', 'starch_spread'):
-            cat_px['starch'] += area
-        elif cat == 'soup_sauce':
-            pass  # excluded from plate ratio
-        elif cat == 'mixed':
-            cat_px['starch']  += area // 2
-            cat_px['protein'] += area // 2
-        elif cat in cat_px:
-            cat_px[cat] += area
+    # ── Categorise ────────────────────────────────────────────────────────────
+    for det in detections:
+        det['category'] = FOOD_CATEGORIES.get(det['class_name'], 'unknown')
 
-    total_food_px = sum(cat_px.values())
-    if total_food_px == 0:
-        return {
-            'ratios':         {'starch': 0.0, 'protein': 0.0, 'vegetable': 0.0},
-            'plate_balanced': False,
-            'vegetables_low': True,
-            'messages':       ['No food detected on plate.'],
-        }
+    countable  = [d for d in detections
+                  if d['category'] not in ('soup_sauce', 'ignored', 'unknown')]
+    total_area = sum(d['area_px'] for d in countable) or 1
 
-    ratios = {k: v / total_food_px for k, v in cat_px.items()}
-    vegetables_low = ratios['vegetable'] < 0.30
-    plate_balanced = ratios['vegetable'] >= 0.40 and ratios['starch'] <= 0.35
+    area_by_cat = {'vegetable': 0.0, 'protein': 0.0,
+                   'starch_moulded': 0.0, 'starch_spread': 0.0}
+    for d in countable:
+        if d['category'] in area_by_cat:
+            area_by_cat[d['category']] += d['area_px']
 
-    messages = []
-    if vegetables_low:
-        messages.append(
-            'Add more vegetables to your plate for better blood sugar control.'
-        )
-    if ratios['starch'] > 0.40:
-        messages.append(
-            'Your plate has too much starchy food. '
-            'Try to keep starches to about a quarter of your plate.'
-        )
-    return {
-        'ratios': ratios, 'plate_balanced': plate_balanced,
-        'vegetables_low': vegetables_low, 'messages': messages,
+    veg_ratio     = area_by_cat['vegetable'] / total_area
+    protein_ratio = area_by_cat['protein']   / total_area
+    starch_ratio  = (area_by_cat['starch_moulded'] +
+                     area_by_cat['starch_spread'])  / total_area
+
+    ratios = {
+        'vegetable': round(veg_ratio, 3),
+        'protein':   round(protein_ratio, 3),
+        'starch':    round(starch_ratio, 3),
     }
 
-
-def classify_starch_portion(items, nutrition_db=None):
-    """
-    Classify starch portions using two reference systems (v3.3).
-
-    - starch_moulded (banku, fufu): volume vs 220 cm³ medium orange.
-    - starch_spread (jollof, rice, plantain): weight vs GDA serving sizes.
-
-    items: list of dicts with 'class_name', 'volume_cm3', 'weight_g'.
-    nutrition_db: loaded nutrition DB dict (loaded from file if not provided).
-    """
-    from config import STARCH_REFERENCE_VOLUME_CM3
-    from pipeline.volume import PORTION_THRESHOLDS
-
-    if nutrition_db is None:
-        nutrition_db = load_nutrition_db()
-
-    moulded_volume        = 0.0
-    moulded_foods         = []
-    spread_weight         = 0.0
-    spread_foods          = []
-    spread_servings_total = 0.0
-
-    for item in items:
-        cat = PLATE_CATEGORY.get(item['class_name'], 'unknown')
-        if cat == 'starch_moulded':
-            moulded_volume += item.get('volume_cm3', 0.0)
-            moulded_foods.append(item['class_name'])
-        elif cat == 'starch_spread':
-            w = item.get('weight_g', 0.0)
-            spread_weight += w
-            spread_foods.append(item['class_name'])
-            db_entry = nutrition_db.get(db_key(item['class_name']), {})
-            gda_g = db_entry.get('gda_serving_g')
-            if gda_g and gda_g > 0:
-                spread_servings_total += w / gda_g
-
-    # ── Path 1: Moulded starches (volume-based, orange reference) ─────────────
-    if moulded_volume > 0:
-        ratio = moulded_volume / STARCH_REFERENCE_VOLUME_CM3
-        if   ratio <= PORTION_THRESHOLDS['small']:       category = 'small'
-        elif ratio <= PORTION_THRESHOLDS['appropriate']:  category = 'appropriate'
-        elif ratio <= PORTION_THRESHOLDS['reduce']:       category = 'reduce'
-        else:                                             category = 'excessive'
-
-        food_label = ', '.join(f.replace('_', ' ').title() for f in moulded_foods)
-        _MOULDED_MESSAGES = {
-            'small':       f'Your {food_label} portion is small.',
-            'appropriate': f'Your {food_label} portion looks good.',
-            'reduce':      (f'Consider reducing your {food_label}. '
-                            'Aim for about the size of a medium orange.'),
-            'excessive':   (f'Your {food_label} portion is too large. '
-                            'It should be about the size of a medium orange.'),
-        }
-        return {
-            'total_starch_volume_cm3': moulded_volume,
-            'total_starch_weight_g':   0.0,
-            'portion_category':        category,
-            'ratio_to_reference':      round(ratio, 2),
-            'reference_type':          'volume',
-            'message':                 _MOULDED_MESSAGES[category],
-        }
-
-    # ── Path 2: Spread starches (weight-based, GDA serving reference) ─────────
-    if spread_weight > 0:
-        if   spread_servings_total <= GDA_SPREAD_THRESHOLDS['small']:       category = 'small'
-        elif spread_servings_total <= GDA_SPREAD_THRESHOLDS['appropriate']:  category = 'appropriate'
-        elif spread_servings_total <= GDA_SPREAD_THRESHOLDS['reduce']:       category = 'reduce'
-        else:                                                                category = 'excessive'
-
-        food_label   = ', '.join(f.replace('_', ' ').title() for f in spread_foods)
-        servings_str = f'{spread_servings_total:.1f}'
-        _SPREAD_MESSAGES = {
-            'small':       f'Your {food_label} portion is small ({servings_str} servings).',
-            'appropriate': f'Your {food_label} portion is appropriate ({servings_str} servings).',
-            'reduce':      (f'Consider reducing your {food_label} ({servings_str} servings). '
-                            'Aim for about 2 servings per meal.'),
-            'excessive':   (f'Your {food_label} portion is too large ({servings_str} servings). '
-                            'A single meal should have about 2 servings.'),
-        }
-        return {
-            'total_starch_volume_cm3': 0.0,
-            'total_starch_weight_g':   round(spread_weight, 1),
-            'portion_category':        category,
-            'ratio_to_reference':      round(spread_servings_total, 2),
-            'reference_type':          'weight',
-            'message':                 _SPREAD_MESSAGES[category],
-        }
-
-    # ── Path 3: No starch detected ────────────────────────────────────────────
-    return {
-        'total_starch_volume_cm3': 0.0,
-        'total_starch_weight_g':   0.0,
-        'portion_category':        'none',
-        'ratio_to_reference':      0.0,
-        'reference_type':          'none',
-        'message':                 'No starchy food detected.',
-    }
-
-
-def generate_recommendation(items, plate_area_px=0, nutrition_db=None):
-    """
-    Top-level v3.3 recommendation engine (synced from notebook).
-
-    Combines plate-composition check (area-based) with starch-portion
-    check (volume or GDA-weight based) into a single alert + message set.
-
-    v3.3: spread starches assessed via GDA serving weights, not plate ratio only.
-
-    items: list of dicts with keys:
-        class_name, mask, volume_cm3, weight_g,
-        gi_value (int|None), gi_class (str|None), carbs_g (float).
-    plate_area_px: total plate pixel area (from plate_info).
-
-    Returns a dict with:
-        ratios, plate_balanced, vegetables_low, alert_level, overall_message,
-        detail_messages, starch_assessment, gi_info, lcd.
-    """
-    plate  = classify_plate_composition(items, plate_area_px)
-    starch = classify_starch_portion(items, nutrition_db=nutrition_db)
-
-    gi_info = [
-        {'food': d['class_name'], 'gi': d.get('gi_value'), 'gi_class': d.get('gi_class')}
-        for d in items if d.get('gi_value') is not None
-    ]
+    # ── Level 1: Plate composition message ───────────────────────────────────
+    veg_pct = veg_ratio * 100
+    if veg_pct < 30:
+        level1_msg  = ('Your plate needs more vegetables. '
+                       'Aim for at least half your plate to be salad or fibre-rich foods.')
+        alert_level = 'warning'
+    elif veg_pct < 50:
+        level1_msg  = 'Good start — try to push vegetables to at least half your plate.'
+        alert_level = 'caution'
+    else:
+        level1_msg  = 'Great plate balance.'
+        alert_level = 'good'
 
     detail_messages = []
-
-    # ── Two-level decision (from notebook v3.3) ───────────────────────────
-    if starch['portion_category'] == 'excessive':
-        alert_level     = 'warning'
-        overall_message = starch['message']
-        detail_messages.extend(plate['messages'])
-
-    elif starch['portion_category'] == 'reduce':
-        alert_level     = 'caution'
-        overall_message = starch['message']
-        detail_messages.extend(plate['messages'])
-
-    else:
-        # Starch is fine (or none); check plate composition
-        if plate['vegetables_low']:
-            alert_level     = 'caution'
-            overall_message = ('Add more vegetables to your plate '
-                               'for better blood sugar control.')
-            if starch['portion_category'] == 'small':
-                detail_messages.append(
-                    "Your starch portion is small — that's fine, "
-                    'just fill the gap with vegetables.'
-                )
-            else:
-                detail_messages.append(starch['message'])
-        else:
-            alert_level     = 'good'
-            overall_message = 'Your plate looks well balanced.'
-            detail_messages.append(starch['message'])
-
-    # ── High-GI context ───────────────────────────────────────────────────
-    high_gi = [g for g in gi_info if g['gi_class'] == 'High']
-    if high_gi:
-        names = ', '.join(g['food'].replace('_', ' ').title() for g in high_gi)
+    if starch_ratio > 0.35:
         detail_messages.append(
-            f'{names} has a high glycemic index. '
-            'Pair with fibre or vegetables to slow glucose absorption.'
-        )
+            'Your starch portion is taking up a large share of the plate.')
+    if protein_ratio < 0.15 and countable:
+        detail_messages.append(
+            'Consider adding a protein source like fish, chicken, or beans.')
 
-    lcd = LCD_MESSAGES.get(alert_level, LCD_MESSAGES['caution'])
+    # ── Level 2: Per-starch portion check ────────────────────────────────────
+    level2_results = []
+
+    for d in detections:
+        cat  = d['category']
+        name = d['class_name']
+        disp = name.replace('_', ' ')
+
+        if cat == 'starch_moulded':
+            vol = d.get('volume_cm3') or 0.0
+            if vol <= 110:
+                portion_cat = 'small'
+                msg = (f'Your {disp} portion is well within a healthy range. '
+                       'Consider adding more vegetables.')
+            elif vol <= ORANGE_REFERENCE_CM3:
+                portion_cat = 'appropriate'
+                msg = (f'Your {disp} portion looks appropriate — '
+                       'about the size of a medium orange.')
+            else:
+                portion_cat = 'reduce'
+                msg = (f'Your {disp} portion appears larger than a medium orange '
+                       f'(~{ORANGE_REFERENCE_CM3} ml). Consider reducing it slightly.')
+            level2_results.append({
+                'food':        disp,
+                'starch_type': 'moulded',
+                'volume_cm3':  round(vol, 1),
+                'gda_g':       None,
+                'weight_g':    d.get('weight_g'),
+                'portion_cat': portion_cat,
+                'message':     msg,
+            })
+
+        elif cat == 'starch_spread':
+            gda = GDA_SERVING_G.get(name)
+            wt  = d.get('weight_g') or 0.0
+            if gda is None:
+                continue
+            if wt <= gda:
+                portion_cat = 'appropriate'
+                msg = f'Your {disp} portion is within a standard serving.'
+            else:
+                portion_cat = 'reduce'
+                msg = (f'Your {disp} portion exceeds a standard serving '
+                       f'(~{gda}g). Consider a smaller amount.')
+            level2_results.append({
+                'food':        disp,
+                'starch_type': 'spread',
+                'volume_cm3':  None,
+                'gda_g':       gda,
+                'weight_g':    round(wt, 1),
+                'portion_cat': portion_cat,
+                'message':     msg,
+            })
+
+    # ── Level 3: Glycemic Load per item ──────────────────────────────────────
+    level3_results = []
+
+    for d in detections:
+        if d['category'] in ('soup_sauce', 'ignored', 'unknown'):
+            continue
+        gi             = d.get('gi')
+        carbs_per_100g = d.get('carbs_per_100g')
+        weight_g       = d.get('weight_g') or 0.0
+        disp           = d['class_name'].replace('_', ' ')
+
+        if gi is None or carbs_per_100g is None or weight_g == 0:
+            gl, gl_level = None, 'unknown'
+            gl_msg = 'Glycemic load could not be calculated for this item.'
+        else:
+            gl = round((gi / 100.0) * carbs_per_100g * (weight_g / 100.0), 1)
+            if gl < GL_LOW_MAX:
+                gl_level = 'low'
+                gl_msg   = 'Low glycemic load — a steady energy release.'
+            elif gl < GL_MEDIUM_MAX:
+                gl_level = 'medium'
+                gl_msg   = 'Moderate glycemic load — manageable in a balanced meal.'
+            else:
+                gl_level = 'high'
+                gl_msg   = 'High glycemic load — this item may cause a blood sugar spike.'
+
+        level3_results.append({
+            'food':     disp,
+            'gl':       gl,
+            'gl_level': gl_level,
+            'message':  gl_msg,
+        })
+
+    # ── Per-item output (food cards) ──────────────────────────────────────────
+    l2_by_name = {r['food']: r for r in level2_results}
+    items_out  = []
+
+    for d in detections:
+        if d['category'] == 'ignored':
+            continue
+        disp  = d['class_name'].replace('_', ' ')
+        gi    = d.get('gi')
+        gi_cls = (None        if gi is None
+                  else 'Low'  if gi < 55
+                  else 'Medium' if gi < 70
+                  else 'High')
+        l2   = l2_by_name.get(disp, {})
+        wt   = d.get('weight_g') or 0.0
+        c100 = d.get('carbs_per_100g') or 0.0
+        items_out.append({
+            'class_name':        d['class_name'],
+            'food_name':         d['class_name'],  # underscore form — consistent with DB
+            'category':          d['category'],
+            'area_pct':          round((d['area_px'] / total_area) * 100, 1)
+                                 if d['category'] != 'soup_sauce' else None,
+            'volume_cm3':        round(d['volume_cm3'], 1)
+                                 if d.get('volume_cm3') is not None else None,
+            'weight_g':          round(wt, 1) if wt else None,
+            'carbs_g':           round(c100 * wt / 100, 1),
+            'glycemic_index':    gi,
+            'gi_classification': gi_cls,
+            'portion_category':  l2.get('portion_cat'),
+            'recommendation':    l2.get('message'),
+        })
+
+    total_carbs_g = round(sum(i['carbs_g'] for i in items_out), 1)
+    lcd           = LCD_MESSAGES.get(alert_level, LCD_MESSAGES['caution'])
 
     return {
-        'ratios':              plate['ratios'],
-        'plate_balanced':      plate['plate_balanced'],
-        'vegetables_low':      plate['vegetables_low'],
-        'alert_level':         alert_level,
-        'overall_message':     overall_message,
-        'detail_messages':     detail_messages,
-        'starch_assessment':   starch,
-        'gi_info':             gi_info,
-        'lcd':                 lcd,
+        'plate_assessment': {
+            'alert_level':     alert_level,
+            'overall_message': level1_msg,
+            'detail_messages': detail_messages,
+            'ratios':          ratios,
+            'lcd':             lcd,
+        },
+        'recommendations': {
+            'level1_message': level1_msg,
+            'level2':         level2_results,
+            'level3':         level3_results,
+        },
+        'items':          items_out,
+        'total_carbs_g':  total_carbs_g,
     }
 
 

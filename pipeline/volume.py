@@ -188,6 +188,18 @@ def estimate_volumes(image_bgr, raw_dets, depth_map, plate_class='Plate',
         max_w   = MAX_ITEM_WEIGHT_G.get(d['name'], MAX_ITEM_WEIGHT_G['default'])
         weight  = min(raw_w, max_w)
 
+        if nutrition_db:
+            db_entry = nutrition_db.get(d['name'].lower(), {})
+            gi_value = db_entry.get('glycemic_index')
+            gi_class = db_entry.get('gi_classification')
+            per100   = db_entry.get('per_100g', {})
+            carbs_g  = (weight / 100.0) * per100.get('carbs', 0)
+        else:
+            gi_value = None
+            gi_class = None
+            carbs_g  = 0.0
+        gl = (gi_value or 0) * carbs_g / 100
+
         results.append({
             'name':           d['name'],
             'conf':           d['conf'],
@@ -197,6 +209,10 @@ def estimate_volumes(image_bgr, raw_dets, depth_map, plate_class='Plate',
             'volume_cm3':     round(vol, 1),
             'weight_g':       round(weight, 1),
             'cleanup_method': cleanup_method,
+            'gi_value':       gi_value,
+            'gi_class':       gi_class,
+            'carbs_g':        round(carbs_g, 1),
+            'glycemic_load':  round(gl, 1),
         })
 
     return results, {'plate_mask': plate_mask, 'plate_method': method, 'px_per_cm': px_per_cm}

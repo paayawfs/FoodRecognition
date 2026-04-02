@@ -24,9 +24,9 @@ from database.db import get_db, init_db
 from pipeline.camera import Camera
 from pipeline.segmentation import FoodSegmenter
 from pipeline.depth import DepthEstimator
-from pipeline.volume import estimate_volumes, classify_portion
+from pipeline.volume import estimate_volumes
 from pipeline.nutrition import (
-    load_nutrition_db, calculate_nutrition, generate_item_recommendation,
+    load_nutrition_db, calculate_nutrition,
     generate_recommendation, db_key,
 )
 
@@ -115,61 +115,45 @@ def run_pipeline(image_bgr: np.ndarray) -> dict:
         image_bgr, raw_dets, depth_map, nutrition_db=nutrition
     )
 
-    # 4. Per-item nutrition + recommendations
-    foods_out       = []
+    # 4. Build detection dicts for three-level generate_recommendation
     items_for_assess = []
+    vol_results_map  = {d['name']: d for d in vol_results}
 
     for item in vol_results:
         class_name = item['name']
-        weight_g   = item['weight_g']
-        vol        = item['volume_cm3']
-
-        portion_cat = classify_portion(vol)
-        nut = calculate_nutrition(nutrition, class_name, weight_g)
-
-        entry  = nutrition.get(db_key(class_name), {})
-        gi     = entry.get('glycemic_index', 50)
-        gi_cls = entry.get('gi_classification', 'Medium')
-
-        rec_text = generate_item_recommendation(class_name, portion_cat, gi_cls)
-
-        foods_out.append({
-            'food_name':         class_name,
-            'display_name':      class_name.replace('_', ' ').title(),
-            'confidence':        round(item['conf'], 3),
-            'portion_category':  portion_cat,
-            'volume_cm3':        vol,
-            'weight_g':          weight_g,
-            'area_cm2':          item['area_cm2'],
-            'carbs_g':           nut['carbs_g'],
-            'calories':          nut['calories'],
-            'protein_g':         nut['protein_g'],
-            'fat_g':             nut['fat_g'],
-            'glycemic_index':    gi,
-            'gi_classification': gi_cls,
-            'recommendation':    rec_text,
-        })
-
+        entry      = nutrition.get(db_key(class_name), {})
         items_for_assess.append({
-            'class_name': class_name,
-            'mask':       item['mask'],
-            'volume_cm3': vol,
-            'weight_g':   weight_g,
-            'gi_value':   gi,
-            'gi_class':   gi_cls,
-            'carbs_g':    nut['carbs_g'],
+            'class_name':     class_name,
+            'mask':           item['mask'],
+            'area_px':        int(item['mask'].sum()),
+            'volume_cm3':     item['volume_cm3'],
+            'weight_g':       item['weight_g'],
+            'gi':             entry.get('glycemic_index', 50),
+            'carbs_per_100g': entry.get('per_100g', {}).get('carbs', 0),
         })
 
-    # 5. Plate-level assessment (50/25/25 Diabetic Plate Model v3.1)
+    # 5. Three-level plate assessment (v3.3.1)
     plate_area_px = int(plate_info.get('plate_mask', np.zeros(1)).sum())
-    plate_assessment = generate_recommendation(items_for_assess, plate_area_px)
+    rec_result    = generate_recommendation(items_for_assess, plate_area_px)
 
-    # 6. Aggregate totals
+    # 6. Merge calories/protein/fat (not computed inside generate_recommendation)
+    foods_out = []
+    for item in rec_result['items']:
+        nut  = calculate_nutrition(nutrition, item['class_name'], item.get('weight_g') or 0)
+        conf = vol_results_map.get(item['class_name'], {}).get('conf', 0.0)
+        foods_out.append({
+            **item,
+            'confidence': round(conf, 3),
+            'calories':   nut['calories'],
+            'protein_g':  nut['protein_g'],
+            'fat_g':      nut['fat_g'],
+        })
+
     totals = {
-        'carbs_g':   round(sum(f['carbs_g']  for f in foods_out), 1),
-        'calories':  round(sum(f['calories'] for f in foods_out), 1),
-        'protein_g': round(sum(f['protein_g'] for f in foods_out), 1),
-        'fat_g':     round(sum(f['fat_g']    for f in foods_out), 1),
+        'carbs_g':   rec_result['total_carbs_g'],
+        'calories':  round(sum(f.get('calories', 0)  for f in foods_out), 1),
+        'protein_g': round(sum(f.get('protein_g', 0) for f in foods_out), 1),
+        'fat_g':     round(sum(f.get('fat_g', 0)     for f in foods_out), 1),
     }
 
     # 7. Annotated image — segmentation masks only, no bounding boxes
@@ -180,7 +164,8 @@ def run_pipeline(image_bgr: np.ndarray) -> dict:
     return {
         'foods':            foods_out,
         'totals':           totals,
-        'plate_assessment': plate_assessment,
+        'plate_assessment': rec_result['plate_assessment'],
+        'recommendations':  rec_result['recommendations'],
         'annotated_b64':    annotated_b64,
         'plate_method':     plate_info.get('plate_method', 'unknown'),
     }
@@ -411,16 +396,17 @@ def infer():
         # Persist meal record if a user is logged in
         meal_id = None
         if user_id:
-            db = get_db()
-            pa_json = json.dumps(result['plate_assessment'])
+            db      = get_db()
+            pa_json  = json.dumps(result['plate_assessment'])
+            rec_json = json.dumps(result['recommendations'])
             with db:
                 cur = db.execute(
                     """INSERT INTO meals
                        (user_id, original_image_path, annotated_image_path,
-                        total_carbs_g, plate_assessment, notes)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
+                        total_carbs_g, plate_assessment, recommendations_json, notes)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (user_id, filepath, ann_path, result['totals']['carbs_g'],
-                     pa_json, notes),
+                     pa_json, rec_json, notes),
                 )
                 meal_id = cur.lastrowid
                 for food in result['foods']:
@@ -450,6 +436,7 @@ def infer():
             'foods':            result['foods'],
             'totals':           result['totals'],
             'plate_assessment': result['plate_assessment'],
+            'recommendations':  result['recommendations'],
             'annotated_url':    f'/static/captures/{ann_filename}',
         })
 
@@ -504,9 +491,11 @@ def meal_detail(meal_id):
                         (meal_id,)).fetchall()]
     db.close()
 
-    # Deserialize plate_assessment from JSON string
-    pa_raw = meal.pop('plate_assessment', None)
-    meal['plate_assessment'] = json.loads(pa_raw) if pa_raw else {}
+    # Deserialize plate_assessment and recommendations from JSON strings
+    pa_raw  = meal.pop('plate_assessment', None)
+    rec_raw = meal.pop('recommendations_json', None)
+    meal['plate_assessment'] = json.loads(pa_raw)  if pa_raw  else {}
+    meal['recommendations']  = json.loads(rec_raw) if rec_raw else {}
 
     orig = meal.pop('original_image_path', None)
     meal['original_url'] = (

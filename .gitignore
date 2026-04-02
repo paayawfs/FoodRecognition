@@ -6,3 +6,4 @@ data/
 dataset/ 
 dataset_round2/ 
 best_ncnn_model*/ 
+.gitignore

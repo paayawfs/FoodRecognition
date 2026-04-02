@@ -30,7 +30,8 @@ def init_db():
                 original_image_path  TEXT,
                 annotated_image_path TEXT,
                 total_carbs_g        REAL DEFAULT 0,
-                plate_assessment     TEXT,
+                plate_assessment      TEXT,
+                recommendations_json TEXT,
                 notes                TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
@@ -50,9 +51,11 @@ def init_db():
                 FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
             );
         """)
-        # Migrate: add plate_assessment column if missing
+        # Migrate: add columns to meals if missing
         cols = [r[1] for r in conn.execute("PRAGMA table_info(meals)").fetchall()]
         if 'plate_assessment' not in cols:
             conn.execute("ALTER TABLE meals ADD COLUMN plate_assessment TEXT")
+        if 'recommendations_json' not in cols:
+            conn.execute("ALTER TABLE meals ADD COLUMN recommendations_json TEXT")
     conn.close()
     print("Database initialised.")

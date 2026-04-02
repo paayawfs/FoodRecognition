@@ -109,6 +109,15 @@ LCD_MESSAGES = {
     'warning': ('Too Much Starch', 'Reduce portion!'),
 }
 
+# Glycemic Load thresholds (per food item as served).
+# GL = (GI × carbs_in_serving_g) / 100
+# Source: Foster-Powell, Holt & Brand-Miller (2002)
+GL_THRESHOLDS = {
+    'low':    10,   # GL ≤ 10
+    'medium': 19,   # GL 11–19
+    # GL ≥ 20 → high
+}
+
 
 # ── Plate-level assessment (synced with notebook v3.1) ───────────────────────
 
@@ -256,7 +265,17 @@ def generate_recommendation(items, plate_area_px=0):
     starch = classify_starch_portion(items)
 
     gi_info = [
-        {'food': d['class_name'], 'gi': d.get('gi_value'), 'gi_class': d.get('gi_class')}
+        {
+            'food':     d['class_name'],
+            'gi':       d.get('gi_value'),
+            'gi_class': d.get('gi_class'),
+            'gl':       d.get('glycemic_load', 0),
+            'gl_class': (
+                'Low' if d.get('glycemic_load', 0) <= GL_THRESHOLDS['low']
+                else 'Medium' if d.get('glycemic_load', 0) <= GL_THRESHOLDS['medium']
+                else 'High'
+            ),
+        }
         for d in items if d.get('gi_value') is not None
     ]
 
@@ -293,14 +312,24 @@ def generate_recommendation(items, plate_area_px=0):
             overall_message = 'Your plate looks well balanced.'
             detail_messages.append(starch['message'])
 
-    # ── High-GI context ───────────────────────────────────────────────────
-    high_gi = [g for g in gi_info if g['gi_class'] == 'High']
-    if high_gi:
-        names = ', '.join(g['food'].replace('_', ' ').title() for g in high_gi)
-        detail_messages.append(
-            f'{names} has a high glycemic index. '
-            'Pair with fibre or vegetables to slow glucose absorption.'
-        )
+    # ── Glycemic Load assessment ──────────────────────────────────────
+    for det in items:
+        gl = det.get('glycemic_load', 0)
+        if gl <= 0:
+            continue
+        food_label = det['class_name'].replace('_', ' ').title()
+
+        if gl >= 20:
+            detail_messages.append(
+                f'{food_label} has a high glycemic load ({gl:.0f}). '
+                'Pair with fibre or vegetables to slow glucose absorption.'
+            )
+        elif gl >= 11:
+            detail_messages.append(
+                f'{food_label} has a moderate glycemic load ({gl:.0f}). '
+                'Adding vegetables can help manage blood sugar.'
+            )
+        # GL ≤ 10: no message — low glycemic impact, no concern.
 
     lcd = LCD_MESSAGES.get(alert_level, LCD_MESSAGES['caution'])
 
