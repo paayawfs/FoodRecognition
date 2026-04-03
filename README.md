@@ -2,139 +2,163 @@
 
 ## Ghanaian Food Recognition with Diabetic Dietary Recommendations
 
-An edge-deployed AI system that photographs meals, identifies Ghanaian foods, estimates portion sizes, and provides diabetic-friendly dietary recommendations.
+An edge-deployed AI system that photographs meals, identifies Ghanaian foods, estimates portion sizes, and provides diabetic-friendly dietary recommendations — designed to run entirely on a Raspberry Pi 5 with no cloud dependency.
 
 ---
 
-## 🎯 Features
+## Features
 
-- **Food Segmentation**: YOLOv8-seg detects and segments 10 Ghanaian foods
-- **Depth Estimation**: MiDaS estimates food height for volume calculation
-- **Portion Estimation**: Combines segmentation + depth → volume → weight
-- **Nutrition Analysis**: Calculates calories, carbs, protein, and glycemic load
-- **Diabetic Recommendations**: Rule-based dietary advice based on glycemic load
+- **Food Segmentation** — YOLOv8-seg (NCNN format on Pi, PyTorch for development) detects and segments 17 Ghanaian food classes with pixel-accurate masks
+- **Depth Estimation** — MiDaS estimates food height from a single RGB image for volume calculation
+- **Volume & Weight Estimation** — Fuses segmentation masks with depth maps; applies food-specific densities from the nutrition DB
+- **Three-Level Recommendation Engine** (v3.3.1, source of truth: `notebooks/06_recommendation_v3.ipynb`):
+  - **Level 1** — Plate composition check against the 50 % veg / 25 % protein / 25 % starch Diabetic Plate Model
+  - **Level 2** — Per-starch portion check (orange-reference volume for moulded starches; GDA serving weight for spread starches)
+  - **Level 3** — Per-item Glycemic Load (GL = GI × carbs_per_100g × weight_g / 10 000)
+- **Flask SPA** — Single-page web app with camera capture, image upload, meal history, per-user carb tracking, and CSV/PDF export
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 capstone/
-├── notebooks/                    # Jupyter notebooks (main implementation)
-│   ├── 01_food_segmentation.ipynb    # YOLOv8-seg food detection
-│   ├── 02_depth_estimation.ipynb     # MiDaS depth estimation
-│   ├── 03_fusion_pipeline.ipynb      # Combine seg + depth → volume
-│   ├── 04_nutrition_calculator.ipynb # Nutrition & GL calculations
-│   └── 05_complete_demo.ipynb        # End-to-end demo
+├── notebooks/
+│   └── 06_recommendation_v3.ipynb    # Three-level recommendation engine (source of truth)
+│
+├── pipeline/                         # Development pipeline (mirrors pi_deploy/pipeline/)
+│   ├── nutrition.py                  # Recommendation engine + nutrition lookup
+│   ├── volume.py                     # Volume, weight & GL estimation
+│   ├── depth.py                      # MiDaS depth estimator
+│   ├── segmentation.py               # YOLOv8 model wrapper
+│   └── camera.py                     # Camera interface
+│
+├── pi_deploy/                        # Raspberry Pi deployment package
+│   ├── app.py                        # Flask SPA backend (foodai.local:5000)
+│   ├── config.py                     # Paths, thresholds, model config
+│   ├── requirements.txt              # Pi-specific dependencies
+│   ├── database/
+│   │   └── db.py                     # SQLite schema: users, meals, meal_items
+│   ├── pipeline/                     # Pi-adapted pipeline (same logic as root pipeline/)
+│   │   ├── nutrition.py
+│   │   ├── volume.py
+│   │   ├── depth.py
+│   │   ├── segmentation.py
+│   │   └── camera.py
+│   ├── models/
+│   │   ├── best.pt                   # PyTorch fallback
+│   │   └── best_ncnn_model/          # NCNN model (primary — runs on Pi without GPU)
+│   └── static/
+│       └── index.html                # Single-page frontend
+│
 ├── data/
-│   └── nutrition_db.json         # Ghanaian food nutrition database
-├── models/                       # Place trained models here
-│   └── best.pt                   # (Your fine-tuned YOLOv8 model)
-├── templates/
-│   └── index.html                # Flask web interface
-├── app.py                        # Flask web application
-├── requirements.txt              # Python dependencies
+│   ├── nutrition_db.json             # Ghanaian food nutrition database
+│   └── ...                           # Source CSVs, WAFCT data, GI references
+│
+├── models/
+│   └── yolov8n-seg.pt                # Base model for training
+│
+├── requirements.txt                  # Development dependencies
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Install Dependencies
+### Development (local)
 
 ```bash
-cd capstone
 pip install -r requirements.txt
-```
-
-### 2. Run Jupyter Notebooks
-
-Open notebooks in order to understand each component:
-
-```bash
-jupyter notebook notebooks/
-```
-
-### 3. Run Flask Web App
-
-```bash
 python app.py
 ```
 
-Open http://localhost:5000 in your browser.
+Open `http://localhost:5000`.
+
+### Raspberry Pi deployment
+
+```bash
+cd pi_deploy
+pip install -r requirements.txt   # use CPU torch wheel on Pi
+python app.py
+```
+
+Open `http://foodai.local:5000` from any device on the same network.
+
+> **Pi camera:** Install via `sudo apt install -y python3-picamera2` — do not `pip install`.
 
 ---
 
-## 🍲 Supported Foods
+## Supported Foods
 
-| Food | Category | Glycemic Index |
-|------|----------|----------------|
-| Jollof Rice | Starch | 70 |
-| Waakye | Starch | 55 |
-| Banku | Starch | 65 |
-| Fufu | Starch | 75 |
-| Fried Plantain | Starch | 70 |
-| Grilled Chicken | Protein | 0 |
-| Grilled Tilapia | Protein | 0 |
-| Kontomire Stew | Vegetable | 15 |
-| Light Soup | Soup | 20 |
-| Shito | Condiment | 10 |
+| Food | Category | Portion Reference |
+|------|----------|-------------------|
+| Jollof Rice | Starch — spread | GDA: 180 g / serving |
+| Waakye | Starch — spread | GDA: 170 g / serving |
+| Plain Rice | Starch — spread | GDA: 180 g / serving |
+| Fried Plantain | Starch — spread | GDA: 120 g / serving |
+| Banku | Starch — moulded | Orange reference: 220 ml |
+| Fufu | Starch — moulded | Orange reference: 220 ml |
+| Rice Balls | Starch — moulded | Orange reference: 220 ml |
+| Tuo Zaafi | Starch — moulded | Orange reference: 220 ml |
+| Grilled Chicken | Protein | — |
+| Tilapia | Protein | — |
+| Fried Fish | Protein | — |
+| Beans | Protein | — |
+| Boiled Egg | Protein | — |
+| Salad | Vegetable | — |
+| Okro Soup | Soup / sauce | Excluded from plate ratios |
+| Light Soup | Soup / sauce | Excluded from plate ratios |
+| Shito | Soup / sauce | Excluded from plate ratios |
 
 ---
 
-## 🔧 Training Your Own Model
+## Glycemic Load Rating
 
-1. Annotate images in [Roboflow](https://roboflow.com) with polygon masks
-2. Export dataset in YOLOv8 format
-3. Train:
+> GL = (GI / 100) × carbs_per_100g × (weight_g / 100)
+>
+> Source: Foster-Powell, Holt & Brand-Miller (2002)
+
+| GL | Rating |
+|----|--------|
+| < 10 | 🟢 Low |
+| 10 – 19 | 🟡 Medium |
+| ≥ 20 | 🔴 High |
+
+---
+
+## Model Training & Export
+
+**Train:**
 
 ```python
 from ultralytics import YOLO
 
-model = YOLO("yolov8n-seg.pt")
+model = YOLO("models/yolov8n-seg.pt")
 model.train(data="path/to/data.yaml", epochs=100, imgsz=640)
 ```
 
-4. Copy `runs/segment/train/weights/best.pt` to `models/best.pt`
-
----
-
-## 📊 Glycemic Load Rating
-
-| GL Range | Rating | Color |
-|----------|--------|-------|
-| 0-10 | Low | 🟢 Green |
-| 11-19 | Medium | 🟡 Yellow |
-| 20-30 | High | 🟠 Orange |
-| 31+ | Very High | 🔴 Red |
-
----
-
-## 🍓 Raspberry Pi Deployment
-
-1. Flash Raspberry Pi OS (64-bit)
-2. Install dependencies
-3. Convert models to TFLite:
+**Export to NCNN for Pi:**
 
 ```python
-model.export(format="tflite")
+model = YOLO("runs/segment/train/weights/best.pt")
+model.export(format="ncnn")
 ```
 
-4. Run Flask app
+Copy the exported `best_ncnn_model/` folder to `pi_deploy/models/`.
 
 ---
 
-## 📚 References
+## References
 
 - [Ultralytics YOLOv8](https://docs.ultralytics.com/)
 - [Intel MiDaS](https://github.com/isl-org/MiDaS)
-- [FAO INFOODS](https://www.fao.org/infoods/)
-- [USDA FoodData Central](https://fdc.nal.usda.gov/)
+- [Ghana Dietetic Association Serving Sizes — Lartey et al. 1999](https://www.gda.org.gh/)
+- [International Tables of Glycemic Index — Foster-Powell et al. 2002](https://doi.org/10.1093/ajcn/76.1.5)
+- [West African Food Composition Table (WAFCT) 2019](https://www.fao.org/infoods/infoods/tables-and-databases/africa/en/)
 
 ---
 
-## 📝 License
+## License
 
-MIT License - Educational/Research Use
-"# FoodRecognition" 
+MIT License — Educational / Research Use
