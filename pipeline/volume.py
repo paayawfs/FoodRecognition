@@ -10,6 +10,7 @@ from config import (
     PLATE_DIAMETER_CM, EXPECTED_MAX_FOOD_HEIGHT_CM,
     UNIVERSAL_MAX_HEIGHT_CM, PX_PER_CM_MIN, PX_PER_CM_MAX,
     STARCH_REFERENCE_VOLUME_CM3,
+    USE_CALIBRATED_DEPTH, DEPTH_UNITS_PER_CM,
 )
 
 # v3.1: Density read from NUTRITION_DB at runtime.
@@ -172,8 +173,11 @@ def estimate_volumes(image_bgr, raw_dets, depth_map, plate_class='Plate',
     results = []
     for d, cm, cleanup_method in cleaned:
         dvals = depth_map[cm] - plate_baseline
-        norm_h = np.clip(dvals / max(delta_95, 1e-6), 0, 1.5)
-        h_cm   = np.clip(norm_h * EXPECTED_MAX_FOOD_HEIGHT_CM, 0, UNIVERSAL_MAX_HEIGHT_CM)
+        if USE_CALIBRATED_DEPTH and DEPTH_UNITS_PER_CM:
+            h_cm = np.clip(dvals / DEPTH_UNITS_PER_CM, 0.0, None)
+        else:
+            norm_h = np.clip(dvals / max(delta_95, 1e-6), 0, 1.5)
+            h_cm   = np.clip(norm_h * EXPECTED_MAX_FOOD_HEIGHT_CM, 0, UNIVERSAL_MAX_HEIGHT_CM)
 
         vol    = float(np.sum(h_cm) * pixel_area_cm2)
         area   = float(cm.sum() * pixel_area_cm2)

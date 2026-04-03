@@ -19,6 +19,8 @@ CARB_BUDGET_PER_MEAL        = 45.0
 PX_PER_CM_MIN               = 8.0
 PX_PER_CM_MAX               = 40.0
 STARCH_REFERENCE_VOLUME_CM3 = 220.0   # medium orange ~7-8 cm (v3.1, dietician calibrated)
+USE_CALIBRATED_DEPTH = False           # set True after running calibrate.py
+DEPTH_UNITS_PER_CM   = None            # set by calibrate.py output
 
 # Camera
 PREVIEW_RESOLUTION  = (640, 480)
